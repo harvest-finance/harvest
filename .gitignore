@@ -1,0 +1,7 @@
+build/
+node_modules/
+coverage/
+coverage.json
+secret.json
+.DS_Store
+
