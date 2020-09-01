@@ -274,7 +274,7 @@ contract SNXRewardStrategy is IStrategy, Controllable, ProfitNotifier {
   *   It's not much, but it's honest work.
   *
   *   Note that although `onlyNotPausedInvesting` is not added here,
-  *   calling `investAllUnderlying()` affectively blocks the usage of `doHardWork`
+  *   calling `investAllUnderlying()` effectively blocks the usage of `doHardWork`
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
