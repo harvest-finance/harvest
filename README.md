@@ -68,3 +68,8 @@ BASED + sUSD LP Pool (accepts UNI-V2 combo of BASED and sUSD, gives you FARM):<b
 PASTA + ETH LP Pool (accepts UNI-V2 combo of PASTA and ETH, gives you FARM):<br />
 0xC6f39CFf6797baC5e29275177b6E8e315cF87D95
 
+### Liquidity pools
+
+Balancer pool: [0x0395e4a17ff11d36dac9959f2d7c8eca10fe89c9](https://pools.balancer.exchange/#/pool/0x0395e4a17ff11d36dac9959f2d7c8eca10fe89c9)
+
+Uniswap pool: [0x514906fc121c7878424a5c928cad1852cc545892](https://uniswap.info/pair/0x514906fc121c7878424a5c928cad1852cc545892)
