@@ -14,6 +14,10 @@ Medium: [https://medium.com/harvest-finance](https://medium.com/harvest-finance)
 
 Discord: [https://discord.gg/R5SeTVR](https://discord.gg/R5SeTVR)
 
+Community Wiki: [https://farm.chainwiki.dev/en/home](https://farm.chainwiki.dev/en/home)
+
+策略: [https://farm.chainwiki.dev/zh/策略](https://farm.chainwiki.dev/zh/%E7%AD%96%E7%95%A5)
+
 ## Addresses
 
 We recommend interacting with Harvest via interfaces provided by our website. Direct interaction 
