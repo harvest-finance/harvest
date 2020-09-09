@@ -331,4 +331,49 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
   function setSellFloor(uint256 floor) public onlyGovernance {
     sellFloor = floor;
   }
+
+  /**
+  * Creates a Swerve lock
+  */
+  function createLock(address lockToken, address escrow, uint256 value,
+    uint256 unlockTime) public onlyGovernance {
+    IERC20(lockToken).safeApprove(escrow, 0);
+    IERC20(lockToken).safeApprove(escrow, value);
+    VotingEscrow(escrow).create_lock(value, unlockTime);
+  }
+
+  /**
+  * Checkpoints the Swerve lock balance
+  */
+  function checkpoint(address _gauge) public onlyGovernance {
+    Gauge(_gauge).user_checkpoint(address(this));
+  }
+
+  /**
+  * Increases the lock amount for Swerve
+  */
+  function increaseAmount(address lockToken, address escrow, uint256 value) public onlyGovernance {
+    IERC20(lockToken).safeApprove(escrow, 0);
+    IERC20(lockToken).safeApprove(escrow, value);
+    VotingEscrow(escrow).increase_amount(value);
+  }
+
+  /**
+  * Increases the unlock time for Swerve
+  */
+  function increaseUnlockTime(address escrow, uint256 unlock_time) public onlyGovernance {
+    VotingEscrow(escrow).increase_unlock_time(unlock_time);
+  }
+
+  /**
+  * Withdraws an expired lock
+  */
+  function withdrawLock(address lockToken, address escrow) public onlyGovernance {
+    uint256 balanceBefore = IERC20(lockToken).balanceOf(address(this));
+    VotingEscrow(escrow).withdraw();
+    uint256 balanceAfter = IERC20(lockToken).balanceOf(address(this));
+    if (balanceAfter > balanceBefore) {
+      IERC20(lockToken).safeTransfer(msg.sender, balanceAfter.sub(balanceBefore));
+    }
+  }
 }
