@@ -205,7 +205,6 @@ contract Vault is ERC20, ERC20Detailed, IVault, Controllable {
     uint256 underlyingAmountToWithdraw = underlyingBalanceWithInvestment()
         .mul(numberOfShares)
         .div(totalSupply);
-
     if (underlyingAmountToWithdraw > underlyingBalanceInVault()) {
       // withdraw everything from the strategy to accurately check the share value
       if (numberOfShares == totalSupply) {
