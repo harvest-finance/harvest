@@ -155,29 +155,30 @@ contract SNXRewardUniLPStrategy is IStrategy, Controllable, RewardTokenProfitNot
       && uniswapRoutes[address(uniLPComponentToken1)].length > 1 // and we have a route to do the swap
     ) {
 
-      // allow Uniswap to sell our reward
-      uint256 amountOutMin = 1;
-
+      // allow Uniswap to sell our rewardz
       IERC20(rewardToken).safeApprove(uniswapRouterV2, 0);
       IERC20(rewardToken).safeApprove(uniswapRouterV2, remainingRewardBalance);
 
-      // sell Uni to token1
       // we can accept 1 as minimum because this is called only by a trusted role
+      uint256 amountOutMin = 1;
 
+      // allocate Uni 50/50 across pools
+      uint256 toToken0 = remainingRewardBalance / 2;
+      uint256 toToken1 = remainingRewardBalance - toToken0; // unchecked sub safe due to previous division
+
+      // sell Uni to token0
       IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
-        remainingRewardBalance/2,
+        toToken0,
         amountOutMin,
         uniswapRoutes[address(uniLPComponentToken0)],
         address(this),
         block.timestamp
       );
       uint256 token0Amount = IERC20(uniLPComponentToken0).balanceOf(address(this));
-      // sell Uni to token2
-      // we can accept 1 as minimum because this is called only by a trusted role
-      remainingRewardBalance = IERC20(rewardToken).balanceOf(address(this));
-      
+
+      // sell Uni to token1
       IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
-        remainingRewardBalance,
+        toToken1,
         amountOutMin,
         uniswapRoutes[uniLPComponentToken1],
         address(this),
@@ -186,25 +187,23 @@ contract SNXRewardUniLPStrategy is IStrategy, Controllable, RewardTokenProfitNot
       uint256 token1Amount = IERC20(uniLPComponentToken1).balanceOf(address(this));
 
       // provide token1 and token2 to UniLPToken
-
       IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, 0);
       IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, token0Amount);
 
       IERC20(uniLPComponentToken1).safeApprove(uniswapRouterV2, 0);
       IERC20(uniLPComponentToken1).safeApprove(uniswapRouterV2, token1Amount);
 
-      uint256 liquidity;
-      (,,liquidity) = IUniswapV2Router02(uniswapRouterV2).addLiquidity(
+      IUniswapV2Router02(uniswapRouterV2).addLiquidity(
         uniLPComponentToken0,
         uniLPComponentToken1,
-        token0Amount, 
+        token0Amount,
         token1Amount,
         1,  // we are willing to take whatever the pair gives us
-        1,  
+        1,
         address(this),
         block.timestamp
       );
-    }
+    } // we are usually left with a balance of either token0 or token1
   }
 
   /*
@@ -295,7 +294,7 @@ contract SNXRewardUniLPStrategy is IStrategy, Controllable, RewardTokenProfitNot
   }
 
   /**
-  * Sets the minimum amount of CRV needed to trigger a sale.
+  * Sets the minimum amount of UNI needed to trigger a sale.
   */
   function setSellFloor(uint256 floor) public onlyGovernance {
     sellFloor = floor;
