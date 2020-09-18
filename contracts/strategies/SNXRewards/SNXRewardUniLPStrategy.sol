@@ -134,6 +134,14 @@ contract SNXRewardUniLPStrategy is IStrategy, Controllable, RewardTokenProfitNot
 
 
   function setLiquidationPaths(address [] memory _uniswapRouteToToken0, address [] memory _uniswapRouteToToken1) public onlyGovernance {
+    // sanity check routes start with reward and end with the token
+    require(
+        _uniswapRouteToToken0[0] == rewardToken &&
+        _uniswapRouteToToken1[0] == rewardToken &&
+        _uniswapRouteToToken0[_uniswapRouteToToken0.length - 1] == uniLPComponentToken0 &&
+        _uniswapRouteToToken1[_uniswapRouteToToken1.length - 1] == uniLPComponentToken1,
+        "Invalid liquidation routes"
+    );
     uniswapRoutes[uniLPComponentToken0] = _uniswapRouteToToken0;
     uniswapRoutes[uniLPComponentToken1] = _uniswapRouteToToken1;
   }
