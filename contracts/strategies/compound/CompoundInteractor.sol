@@ -42,7 +42,7 @@ contract CompoundInteractor is ReentrancyGuard {
   /**
   * Supplies Ether to Compound
   * Unwraps WETH to Ether, then invoke the special mint for cEther
-  * We ask to supply "amount", if the "amount" we asked to supply is 
+  * We ask to supply "amount", if the "amount" we asked to supply is
   * more than balance (what we really have), then only supply balance.
   * If we the "amount" we want to supply is less than balance, then
   * only supply that amount.
@@ -60,12 +60,12 @@ contract CompoundInteractor is ReentrancyGuard {
 
   /**
   * Redeems Ether from Compound
-  * receives Ether. Wrap all the ether that is in this contract.  
+  * receives Ether. Wrap all the ether that is in this contract.
   */
   function _redeemEtherInCTokens(uint256 amountCTokens) internal nonReentrant {
     _redeemInCTokens(amountCTokens);
     WETH9 weth = WETH9(address(_weth));
-    weth.deposit.value(address(this).balance)();  
+    weth.deposit.value(address(this).balance)();
   }
 
   /**
@@ -120,6 +120,15 @@ contract CompoundInteractor is ReentrancyGuard {
     if (amountUnderlying > 0) {
       ctoken.redeemUnderlying(amountUnderlying);
     }
+  }
+
+  /**
+  * Redeem liquidity in underlying
+  */
+  function redeemUnderlyingInWeth(uint256 amountUnderlying) internal {
+    _redeemUnderlying(amountUnderlying);
+    WETH9 weth = WETH9(address(_weth));
+    weth.deposit.value(address(this).balance)();
   }
 
   /**
