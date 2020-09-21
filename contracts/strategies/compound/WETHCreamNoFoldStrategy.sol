@@ -109,7 +109,7 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
     }
 
     // get some of the underlying
-    redeemPartial(amountUnderlying);
+    mustRedeemPartial(amountUnderlying);
 
     // Cannot give more than what we have
     uint256 transferBalance = Math.min(
@@ -144,7 +144,10 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
     redeemMaximumWeth();
   }
 
-  function redeemPartial(uint256 amountUnderlying) internal returns (uint256) {
+  /**
+  * Redeems `amountUnderlying` or fails.
+  */
+  function mustRedeemPartial(uint256 amountUnderlying) internal returns (uint256) {
       require(
           ctoken.getCash() >= amountUnderlying,
           "market cash cannot cover liquidity"
