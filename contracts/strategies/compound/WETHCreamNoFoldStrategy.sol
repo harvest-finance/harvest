@@ -135,11 +135,13 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
 
   /**
   * Redeems maximum that can be redeemed from Compound.
+  * Redeem the minimum of the WETH we own, and the WETH that the cToken can
+  * immediately retrieve. Ensures that `redeemMaximum` doesn't fail silently.
+  *
+  * DOES NOT ensure that the strategy crWETH balance becomes 0.
   */
   function redeemMaximum() internal returns (uint256) {
-    // for no folding strategy, we have no loan, we can redeem everything we supplied.
-    uint256 supply = ctoken.balanceOf(address(this));
-    _redeemEtherInCTokens(supply);
+    redeemMaximumWeth();
   }
 
   function redeemPartial(uint256 amountUnderlying) internal returns (uint256) {
