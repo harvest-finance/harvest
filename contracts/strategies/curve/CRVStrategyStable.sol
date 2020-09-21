@@ -103,10 +103,10 @@ contract CRVStrategyStable is IStrategy, Controllable {
 
   function depositArbCheck() public view returns(bool) {
     uint256 currentPrice = underlyingValueFromYCrv(ycrvUnit);
-    if (currentPrice > curvePriceCheckpoint) {
+    if (currentPrice < curvePriceCheckpoint) {
       return currentPrice.mul(100).div(curvePriceCheckpoint) > 100 - arbTolerance;
     } else {
-      return curvePriceCheckpoint.mul(100).div(currentPrice) > 100 - arbTolerance;
+      return currentPrice.mul(100).div(curvePriceCheckpoint) < 100 + arbTolerance;
     }
   }
 
@@ -181,7 +181,7 @@ contract CRVStrategyStable is IStrategy, Controllable {
   * be obtained, the method will get as much as we have.
   */
   function withdrawToVault(uint256 amountUnderlying) external restricted {
-    // If we want to be more accurate, we need to calculate how much yCRV we will need here
+    // todo: If we want to be more accurate, we need to calculate how much yCRV we will need here
     uint256 shares = IERC20(ycrvVault).balanceOf(address(this));
     IVault(ycrvVault).withdraw(shares);
     yCurveToUnderlying(amountUnderlying);

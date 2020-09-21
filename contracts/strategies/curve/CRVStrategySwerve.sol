@@ -121,17 +121,17 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
     unsalvagableTokens[crv] = true;
 
     mixTokenUnit = 10 ** 18;
-    
+
     // starting with a stable price, the mainnet will override this value
     wbtcPriceCheckpoint = mixTokenUnit;
   }
 
   function depositArbCheck() public view returns(bool) {
-    uint256 currentPrice = wbtcValueFromMixToken(mixTokenUnit);
-    if (currentPrice > wbtcPriceCheckpoint) {
-      return currentPrice.mul(100).div(wbtcPriceCheckpoint) > 100 - arbTolerance;
+    uint256 currentPrice = underlyingValueFromYCrv(ycrvUnit);
+    if (currentPrice < curvePriceCheckpoint) {
+      return currentPrice.mul(100).div(curvePriceCheckpoint) > 100 - arbTolerance;
     } else {
-      return wbtcPriceCheckpoint.mul(100).div(currentPrice) > 100 - arbTolerance;
+      return currentPrice.mul(100).div(curvePriceCheckpoint) < 100 + arbTolerance;
     }
   }
 
