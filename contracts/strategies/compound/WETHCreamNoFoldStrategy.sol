@@ -14,7 +14,7 @@ import "../../hardworkInterface/IStrategy.sol";
 import "../../uniswap/interfaces/IUniswapV2Router02.sol";
 
 // (1) Cream is a fork of Compound, we will be using the CompoundInteractor as well.
-// (2) WETH has its own special strategy because its liquidation path would not  
+// (2) WETH has its own special strategy because its liquidation path would not
 //     use WETH as intermediate asset for obvious reason.
 
 contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteractor {
@@ -71,11 +71,11 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
 
   modifier updateSupplyInTheEnd() {
     _;
-    suppliedInWETH = ctoken.balanceOfUnderlying(address(this)); 
+    suppliedInWETH = ctoken.balanceOfUnderlying(address(this));
   }
 
   function depositArbCheck() public view returns(bool) {
-    // there's no arb here. 
+    // there's no arb here.
     return true;
   }
 
@@ -108,11 +108,14 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
       return;
     }
 
-    // get all what we have in cTokens
-    redeemMaximum();
+    // get some of the underlying
+    mustRedeemPartial(amountUnderlying);
 
     // Cannot give more than what we have
-    uint256 transferBalance = Math.min(amountUnderlying, underlying.balanceOf(address(this)));
+    uint256 transferBalance = Math.min(
+        amountUnderlying,
+        underlying.balanceOf(address(this))
+    );
 
     // transfer the amount requested (or the amount we have) back to vault
     IERC20(address(underlying)).safeTransfer(vault, transferBalance);
@@ -132,11 +135,24 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
 
   /**
   * Redeems maximum that can be redeemed from Compound.
+  * Redeem the minimum of the WETH we own, and the WETH that the cToken can
+  * immediately retrieve. Ensures that `redeemMaximum` doesn't fail silently.
+  *
+  * DOES NOT ensure that the strategy crWETH balance becomes 0.
   */
   function redeemMaximum() internal returns (uint256) {
-    // for no folding strategy, we have no loan, we can redeem everything we supplied.
-    uint256 supply = ctoken.balanceOf(address(this));
-    _redeemEtherInCTokens(supply);
+    redeemMaximumWeth();
+  }
+
+  /**
+  * Redeems `amountUnderlying` or fails.
+  */
+  function mustRedeemPartial(uint256 amountUnderlying) internal returns (uint256) {
+      require(
+          ctoken.getCash() >= amountUnderlying,
+          "market cash cannot cover liquidity"
+      );
+      redeemUnderlyingInWeth(amountUnderlying);
   }
 
   /**

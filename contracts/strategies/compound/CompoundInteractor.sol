@@ -6,8 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../../compound/ComptrollerInterface.sol";
-import "../../compound/CTokenInterfaces.sol";
+import "./CompleteCToken.sol";
 import "../../hardworkInterface/IStrategy.sol";
 import "../../weth/WETH9.sol";
 import "@studydefi/money-legos/compound/contracts/ICEther.sol";
@@ -19,7 +18,7 @@ contract CompoundInteractor is ReentrancyGuard {
 
   IERC20 public underlying;
   IERC20 public _weth = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-  CErc20Interface public ctoken;
+  CompleteCToken public ctoken;
   ComptrollerInterface public comptroller;
 
   constructor(
@@ -31,7 +30,7 @@ contract CompoundInteractor is ReentrancyGuard {
     comptroller = ComptrollerInterface(_comptroller);
 
     underlying = IERC20(_underlying);
-    ctoken = CErc20Interface(_ctoken);
+    ctoken = CompleteCToken(_ctoken);
 
     // Enter the market
     address[] memory cTokens = new address[](1);
@@ -42,7 +41,7 @@ contract CompoundInteractor is ReentrancyGuard {
   /**
   * Supplies Ether to Compound
   * Unwraps WETH to Ether, then invoke the special mint for cEther
-  * We ask to supply "amount", if the "amount" we asked to supply is 
+  * We ask to supply "amount", if the "amount" we asked to supply is
   * more than balance (what we really have), then only supply balance.
   * If we the "amount" we want to supply is less than balance, then
   * only supply that amount.
@@ -60,12 +59,12 @@ contract CompoundInteractor is ReentrancyGuard {
 
   /**
   * Redeems Ether from Compound
-  * receives Ether. Wrap all the ether that is in this contract.  
+  * receives Ether. Wrap all the ether that is in this contract.
   */
   function _redeemEtherInCTokens(uint256 amountCTokens) internal nonReentrant {
     _redeemInCTokens(amountCTokens);
     WETH9 weth = WETH9(address(_weth));
-    weth.deposit.value(address(this).balance)();  
+    weth.deposit.value(address(this).balance)();
   }
 
   /**
@@ -123,10 +122,33 @@ contract CompoundInteractor is ReentrancyGuard {
   }
 
   /**
+  * Redeem liquidity in underlying
+  */
+  function redeemUnderlyingInWeth(uint256 amountUnderlying) internal {
+    _redeemUnderlying(amountUnderlying);
+    WETH9 weth = WETH9(address(_weth));
+    weth.deposit.value(address(this).balance)();
+  }
+
+  /**
   * Get COMP
   */
   function claimComp() public {
     comptroller.claimComp(address(this));
+  }
+
+  /**
+  * Redeem the minimum of the WETH we own, and the WETH that the cToken can
+  * immediately retrieve. Ensures that `redeemMaximum` doesn't fail silently
+  */
+  function redeemMaximumWeth() internal {
+      // amount of WETH in contract
+      uint256 available = ctoken.getCash();
+      // amount of WETH we own
+      uint256 owned = ctoken.balanceOfUnderlying(address(this));
+
+      // redeem the most we can redeem
+      redeemUnderlyingInWeth(available < owned ? available : owned);
   }
 
   function () external payable {} // this is needed for the WETH unwrapping
