@@ -96,7 +96,7 @@ contract TimelockedProxy is GovernableProxy {
         require(extSize != 0, "TimelockedProxy: new implementation is not a contract");
 
         _setNext(_nextImpl);
-        _setTimer(block.timestamp + _timer());
+        _setScheduled(block.timestamp + _timer());
     }
 
     // main logic. if the timer has elapsed and there is a next,
