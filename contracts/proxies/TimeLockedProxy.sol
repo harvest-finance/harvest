@@ -77,7 +77,7 @@ contract TimelockedProxy is GovernableProxy {
     }
 
     function timer() external view returns (uint256) {
-        return _scheduled();
+        return _timer();
     }
 
     function scheduledChange() external view returns (uint256) {
