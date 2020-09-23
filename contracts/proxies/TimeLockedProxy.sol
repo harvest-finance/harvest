@@ -9,12 +9,11 @@ contract TimelockedProxy is GovernableProxy {
     // the number of seconds to delay a change
     bytes32 private constant _TIMER_SLOT = 0x16ea8945dccfd60816131e877e35fb4c75542f840cf8432eafe6a82aec3fb393;
 
-    // the timestamp when the change happens
-    bytes32 private constant _SCHEDULED_SLOT = 0x3889c1d17c017840e6a02a4d3c18713f27a6ff8fca4bcba0a7c4e42c9b49c6ec;
-
     // the new target at the change
     bytes32 private constant _NEXT_SLOT = 0x8f58a16f4dc0b4ae97b4b89fc992033e37fc1602778ac3cb5502d7138bee1d0e;
 
+    // the timestamp when the change happens
+    bytes32 private constant _SCHEDULED_SLOT = 0x3889c1d17c017840e6a02a4d3c18713f27a6ff8fca4bcba0a7c4e42c9b49c6ec;
 
     constructor(address _logic, bytes memory _data, address _admin, address _governance, uint256 _timer)
     GovernableProxy(_logic, _data, _admin, _governance)

@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-// These contracts are vendored from OZ contracts and used under the MIT license.
+// These contracts are vendored from OZ contracts, adapted to sol0.5, and used under the MIT license.
 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol
 
 /**
