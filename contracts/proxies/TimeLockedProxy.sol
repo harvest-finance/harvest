@@ -80,12 +80,8 @@ contract TimelockedProxy is GovernableProxy {
         return _timer();
     }
 
-    function scheduledChange() external view returns (uint256) {
-        return _scheduled();
-    }
-
-    function next() external view returns (address) {
-        return _next();
+    function scheduledChange() external view returns (uint256, address) {
+        return (_scheduled(), _next());
     }
 
     function setNext(address _nextImpl) ifAdmin external {

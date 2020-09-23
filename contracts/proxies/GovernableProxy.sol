@@ -40,6 +40,10 @@ contract GovernableProxy is UpgradeableProxy {
         _setAdmin(newAdmin);
     }
 
+    function controllers() external view returns (address, address) {
+        return (_admin(), _governance());
+    }
+
     function _admin() internal view returns (address adm) {
         bytes32 slot = _ADMIN_SLOT;
         // solhint-disable-next-line no-inline-assembly
