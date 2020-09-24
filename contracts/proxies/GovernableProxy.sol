@@ -20,7 +20,7 @@ contract GovernableProxy is UpgradeableProxy {
   }
 
   function _isAdmin(address _someone) internal view returns (bool) {
-    return _storage.isGovernance(_someone);
+    return _storage().isGovernance(_someone);
   }
 
   modifier ifAdmin() {
@@ -33,7 +33,7 @@ contract GovernableProxy is UpgradeableProxy {
 
   function changeStorage(address newStorage) external ifAdmin {
     require(newStorage != address(0), "TransparentUpgradeableProxy: new admin is the zero address");
-    emit StorageChanged(_storage(), newStorage);
+    emit StorageChanged(address(_storage()), newStorage);
     _setStorage(newStorage);
   }
 
@@ -46,7 +46,7 @@ contract GovernableProxy is UpgradeableProxy {
   }
 
   function _governance() internal view returns (address) {
-    return _storage.governance();
+    return _storage().governance();
   }
 
   function _beforeFallback() internal {
