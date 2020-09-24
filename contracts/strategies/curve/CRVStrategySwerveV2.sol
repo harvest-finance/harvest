@@ -19,7 +19,7 @@ import "../../uniswap/interfaces/IUniswapV2Router02.sol";
 
 // This is an exact clone of the WBTC strategy
 // Naming was not adjusted for easy diff
-contract CRVStrategySwerve is IStrategy, ProfitNotifier {
+contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
 
   enum TokenIndex {DAI, USDC, USDT, TUSD}
 
@@ -158,6 +158,53 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
     // now we have the mixed token
   }
 
+
+  /**
+  * Consult the curve protocol. Determine the slippage of a deposit. Return the
+  * percentage lost to slippage
+  *
+  * The slippage is computed as `(best_price - worst_price) * inboundWbtc`.
+  */
+  function depositSlippageCheck(uint256 inboundWbtc) view external returns (uint256 e18PercentLost) {
+    // A low-slippage trade. The mixtoken value of a miniscule amount
+
+    // QUESTION:
+    // token decimals vary. wbtc has only 8, while most have 18. we don't store
+    // or retrieve that info. so this is 1000 tokenwei when I'd prefer it were
+    // 0.0001 tokens.
+
+    // (output / input) * 10 ** 18
+    uint256 smallOutput = ISwerveFi(curve).calc_token_amount(
+      wrapCoinAmount(10**4),
+      true  // is deposit
+    );
+
+    uint256 e18BestPrice = smallOutput
+      .div(10**4) // input amount
+      .mul(10**18);
+
+    // (output / input) * 10 ** 18
+    uint256 e18WorstPrice = ISwerveFi(curve).calc_token_amount(
+        wrapCoinAmount(inboundWbtc),
+        true
+    )
+    .mul(10**18)
+    .div(inboundWbtc);
+
+
+    // QUESTION:
+    // This socializes the bonus. is that what we want?
+    // likely never happens. Would imply a bonus
+    if (e18BestPrice <= e18WorstPrice) return 10 ** 18;   // review this operator carefully.
+
+    // Difference between low-slippage and high-slippage trades
+    uint256 e18LostToSlippage = ((e18BestPrice.sub(e18WorstPrice)).mul(inboundWbtc));
+
+    // Percent lost is the loss divided by total execution at the best price
+    e18PercentLost = e18LostToSlippage.div(e18BestPrice.mul(inboundWbtc));
+
+  }
+
   /**
   * Consult the curve protocol. Determine the slippage of a withdrawal. Charge the
   * slippage to the user withdrawing by decreasing the limit on wbtc they receive.
@@ -165,7 +212,7 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
   * The slippage is computed as `(best_price - worst_price) * maximum_mix_token_allocation`.
   * Price values are scaled by 10**18 to avoid losing fidelity.
   */
-  function includeSlippage(uint256 wbtcLimit) view internal returns (uint256) {
+  function includeExitSlippage(uint256 wbtcLimit) view internal returns (uint256) {
 
     // A low-slippage trade. The wbtc value of 0.0001 mixToken
     uint256 e18BestPrice = wbtcValueFromMixToken(mixTokenUnit.div(10**4)).mul(10**18);
@@ -173,13 +220,13 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
     // The maximum amount of mix tokens the strategy could consume
     uint256 mixTokenLimit = ISwerveFi(curve).calc_token_amount(
         wrapCoinAmount(wbtcLimit),
-        false
+        false  // is not deposit
     );
 
     // Price at highest slippage
     uint256 e18WorstPrice = wbtcLimit.mul(10**18).div(mixTokenLimit);
 
-    // likely never happens. Would imply a large bonus
+    // likely never happens. Would imply a bonus
     if (e18BestPrice <= e18WorstPrice) return wbtcLimit;
 
     // Difference between low-slippage and high-slippage trades
@@ -205,7 +252,7 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
 
     if (wbtcLimit < wbtcMaximumAmount) {
       // Charge costs imposed on the pool by withdrawing to the withdrawer
-      wbtcLimit = includeSlippage(wbtcLimit);
+      wbtcLimit = includeExitSlippage(wbtcLimit);
 
       // we want less than what we can get, we ask for the exact amount
       // now we can remove the liquidity
