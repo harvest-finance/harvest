@@ -15,8 +15,8 @@ contract TimeLockedProxy is GovernableProxy {
   // the timestamp when the change happens
   bytes32 private constant _SCHEDULED_SLOT = 0x3889c1d17c017840e6a02a4d3c18713f27a6ff8fca4bcba0a7c4e42c9b49c6ec;
 
-  constructor(address _logic, bytes memory _data, address _admin, address _governance, uint256 _timer)
-  GovernableProxy(_logic, _data, _admin, _governance)
+  constructor(address _logic, bytes memory _data, address _storage, uint256 _timer)
+  GovernableProxy(_logic, _data, _storage)
   public
   {
     assert(_TIMER_SLOT == bytes32(uint256(keccak256("eip1967.proxy.Things long Past")) - 1));
