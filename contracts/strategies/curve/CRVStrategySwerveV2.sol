@@ -166,27 +166,28 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
   * The slippage is computed as `(best_price - worst_price) * inboundWbtc`.
   */
   function depositSlippageCheck(uint256 inboundWbtc) view external returns (uint256 e18PercentLost) {
-    // A low-slippage trade. The mixtoken value of a miniscule amount
 
     // QUESTION:
     // token decimals vary. wbtc has only 8, while most have 18. we don't store
     // or retrieve that info. so this is 1000 tokenwei when I'd prefer it were
     // 0.0001 tokens.
 
-    // (output / input) * 10 ** 18
-    uint256 smallOutput = ISwerveFi(curve).calc_token_amount(
+    // A low-slippage trade. The mixtoken value of a miniscule amount
+    // price = (output * 10 ** 18) / input
+    uint256 e18BestPrice = ISwerveFi(curve).calc_token_amount(
       wrapCoinAmount(10**4),
       true  // is deposit
-    );
+    )
+      .mul(10**18)
+      .div(10**4); // input amount
 
-    uint256 e18BestPrice = smallOutput
-      .div(10**4) // input amount
-      .mul(10**18);
+    // amount if all executed at best price
+    uint256 e18BestAmount = e18BestPrice.mul(inboundWbtc);
 
-    // (output / input) * 10 ** 18
+    // price = (output * 10 ** 18) / input
     uint256 e18WorstPrice = ISwerveFi(curve).calc_token_amount(
-        wrapCoinAmount(inboundWbtc),
-        true
+      wrapCoinAmount(inboundWbtc),
+      true
     )
     .mul(10**18)
     .div(inboundWbtc);
@@ -201,7 +202,7 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
     uint256 e18LostToSlippage = ((e18BestPrice.sub(e18WorstPrice)).mul(inboundWbtc));
 
     // Percent lost is the loss divided by total execution at the best price
-    e18PercentLost = e18LostToSlippage.div(e18BestPrice.mul(inboundWbtc));
+    e18PercentLost = e18LostToSlippage.div(e18BestAmount);
 
   }
 
