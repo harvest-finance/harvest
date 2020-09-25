@@ -10,11 +10,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 
 contract ProxyVaultStore {
-  // ethers.utils.keccak256(Buffer.from('eip1967.proxy.name', 'utf8'))
+  // ethers.utils.keccak256(Buffer.from('eip1967.proxy.name', 'utf8')) - 1
   bytes32 internal constant _DECIMALS_SLOT = 0x4cd9b827ca535ceb0880425d70eff88561ecdf04dc32fcf7ff3b15c587f8a870;
-  // ethers.utils.keccak256(Buffer.from('eip1967.proxy.decimals', 'utf8'))
+  // ethers.utils.keccak256(Buffer.from('eip1967.proxy.decimals', 'utf8')) - 1
   bytes32 internal constant _NAME_SLOT = 0x88b4d63b782204ccf3dd7bcc4a4de452aaf586955a8e0ad81b8b206bf832d289;
-  // ethers.utils.keccak256(Buffer.from('eip1967.proxy.symbol', 'utf8'))
+  // ethers.utils.keccak256(Buffer.from('eip1967.proxy.symbol', 'utf8')) - 1
   bytes32 internal constant _SYMBOL_SLOT = 0x92467240a432dece8e7e71b8d315fc7762dc6a2d4ea5d477fbc7c8e89b385268;
   // ethers.utils.keccak256(Buffer.from('eip1967.proxy.underyling', 'utf8')) - 1
   bytes32 internal constant _UNDERLYING_SLOT = 0x6c01d774b62caafa2e056c68ebf9527bab4c723de84a856d419539d28f4af3ff;
