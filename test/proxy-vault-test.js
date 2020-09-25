@@ -1,4 +1,5 @@
 const { expectRevert, constants } = require("@openzeppelin/test-helpers");
+const Utils = require('./Utils.js');
 const ProxyVault = artifacts.require("ProxyVault");
 const ProxyVaultTarget = artifacts.require("ProxyVaultTarget");
 const Controller = artifacts.require("Controller");
@@ -11,8 +12,26 @@ const Storage = artifacts.require("Storage");
 const MockUSDC = artifacts.require("MockUSDC");
 const CompoundStrategy = artifacts.require("CompoundStrategy");
 const MockComptroller = artifacts.require("MockComptroller");
+const TestProxyVaultStore = artifacts.require('TestProxyVaultStore');
 
-contract("Vault Test", function (accounts) {
+contract('ProxyVaultStore', (accounts) => {
+  let store;
+
+  before(async () => {
+    store = await TestProxyVaultStore.new();
+  });
+
+  it('should store and retrieve name and symbol', async () => {
+    assert.equal('name', await store.name.call());
+    assert.equal('symbol', await store.symbol.call());
+    await store.setName('new name');
+    await store.setSymbol('new symbol');
+    assert.equal('new name', await store.name.call());
+    assert.equal('new symbol', await store.symbol.call());
+  });
+});
+
+contract("ProxyVault Test", function (accounts) {
   describe("Deposit and Withdraw", function () {
     let governance = accounts[0];
     let controller = accounts[1];
@@ -72,6 +91,19 @@ contract("Vault Test", function (accounts) {
       );
       await vault.setStrategy(strategy.address, { from: controller });
       assert.equal(strategy.address, await vault.strategy());
+    });
+
+    it('exposes proxy management interface', async () => {
+      let result;
+      result = await proxyVault.scheduledChange({from: governance});
+      Utils.assertBNEq(result[0], 0);
+      assert.equal(result[1], '0x0000000000000000000000000000000000000000');
+
+      await proxyVault.setNext(target.address, {from: governance});
+
+      result = await proxyVault.scheduledChange({from: governance});
+      Utils.assertNEqBN(result[0], 0);
+      assert.equal(result[1], target.address);
     });
 
     it("empty vault", async function () {
@@ -178,6 +210,11 @@ contract("Vault Test", function (accounts) {
         { from: governance, }
       );
       const usdcVault = await ProxyVaultTarget.at(usdcProxyVault.address);
+
+      // Additional for name modification check
+      assert.equal(await usdcVault.name(), 'FARM_USDC');
+      assert.equal(await usdcVault.symbol(), 'fUSDC');
+      Utils.assertBNEq(await usdcVault.decimals(), 6);
 
       // set up the strategy
       strategy = await NoopStrategy.new(

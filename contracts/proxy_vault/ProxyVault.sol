@@ -21,18 +21,18 @@ contract ProxyVault is TimeLockedProxy, ProxyVaultStore {
   public {
     require(_toInvestNumerator <= _toInvestDenominator, "cannot invest more than 100%");
     require(_toInvestDenominator != 0, "cannot divide by 0");
-    uint256 underlyingUnit = 10 ** uint256(ERC20Detailed(_underlying).decimals());
 
     _setVaultFractionToInvestNumerator(_toInvestNumerator);
     _setVaultFractionToInvestDenominator(_toInvestDenominator);
 
-    // ERC20Detailed
+    // ERC20Detailed name + symbol
     string memory _remote_symbol = ERC20Detailed(_underlying).symbol();
     require(bytes(_remote_symbol).length <= 20, "Symbol too long");
     _setName(abi.encodePacked("FARM_", _remote_symbol));
     _setSymbol(abi.encodePacked("f", _remote_symbol));
 
     uint8 decimals = ERC20Detailed(_underlying).decimals();
+    uint256 underlyingUnit = 10 ** uint256(decimals);
 
     bytes32 _uslot = _UNDERLYING_SLOT;
     bytes32 _unitslot = _UNIT_SLOT;

@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * Controls access to ProxyVault's permanent (non-target-specific) storage.
  * Should be inherited by all `ProxyVaultTarget`s
+ *
+ * This storage may be safely upgraded by adding new SLOT variables
  */
 
 contract ProxyVaultStore {
@@ -65,25 +67,25 @@ contract ProxyVaultStore {
       bytes32 slot = _NAME_SLOT;
       // solhint-disable-next-line no-inline-assembly
       assembly {
-          ret := mload(0x40)
-          mstore(0x40, 0x20)  // 1 word only
+          ret := mload(0x40)  // load freemem. We'll return this pointer
+          mstore(0x40, add(ret, 0x40))  // 1 word length. 1 word content
           let word := sload(slot)
-          let len := and(word, 0xff)
-          mstore(ret, len)
-          mstore(add(ret, 0x20), and(word, not(0xff)))
+          let len := and(word, 0xff) // LSB is length
+          mstore(ret, len)  // store length in memory
+          mstore(add(ret, 0x20), word) // leave dirty LSB in memory
       }
   }
 
   function _symbol() internal view returns (string memory ret) {
-      bytes32 slot = _UNIT_SLOT;
+      bytes32 slot = _SYMBOL_SLOT;
       // solhint-disable-next-line no-inline-assembly
       assembly {
-          ret := mload(0x40)
-          mstore(0x40, 0x20)  // 1 word only
+          ret := mload(0x40)  // load freemem. We'll return this pointer
+          mstore(0x40, add(ret, 0x40))  // 1 word length. 1 word content
           let word := sload(slot)
-          let len := and(word, 0xff)  // get length
+          let len := and(word, 0xff)  // LSB is length
           mstore(ret, len)  // store length in memory
-          mstore(add(ret, 0x20), and(word, not(0xff)))
+          mstore(add(ret, 0x20), word) // leave dirty LSB in memory
       }
   }
 
@@ -100,15 +102,15 @@ contract ProxyVaultStore {
       }
   }
 
-  function _setSymbol(bytes memory name) internal {
-      bytes32 slot = _NAME_SLOT;
-      uint256 len = name.length;
+  function _setSymbol(bytes memory symbol) internal {
+      bytes32 slot = _SYMBOL_SLOT;
+      uint256 len = symbol.length;
       // solhint-disable-next-line no-inline-assembly
       assembly {
           // last byte is length
-          let name_body := mload(add(name, 0x20))
-          name_body := or(len, and(name_body, not(0xff)))
-          sstore(slot, name_body)
+          let symbol_body := mload(add(symbol, 0x20))
+          symbol_body := or(len, and(symbol_body, not(0xff)))
+          sstore(slot, symbol_body)
       }
   }
 
