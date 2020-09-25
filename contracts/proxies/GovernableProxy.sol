@@ -49,10 +49,6 @@ contract GovernableProxy is UpgradeableProxy {
     return _storage().governance();
   }
 
-  function _beforeFallback() internal {
-    super._beforeFallback();
-  }
-
   function _setStorage(address newStorage) private {
     bytes32 slot = _STORAGE_SLOT;
 

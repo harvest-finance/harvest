@@ -102,10 +102,8 @@ contract TimeLockedProxy is GovernableProxy {
     // break up the conditions to save a SLOAD on most calls
     if (scheduled != 0 && block.timestamp > scheduled) {
       address nextImpl = _next();
-      if (nextImpl != address(0)) {
-        _upgradeTo(nextImpl);
-        _setNext(address(0));
-      }
+      _upgradeTo(nextImpl);
+      _setNext(address(0));
       _setScheduled(0);
     }
     super._beforeFallback();
