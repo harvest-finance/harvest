@@ -19,6 +19,10 @@ import "./ProxyVaultStore.sol";
 // STORAGE CHANGES MUST BE ADDITIVE ONLY
 // DO NOT CHANGE INHERITANCE ORDERS
 
+
+/**
+ * Adapted from the Vault
+ */
 contract ProxyVaultTarget is ERC20, IVault, ProxyStorageAccess, ProxyVaultStore {
   using SafeERC20 for IERC20;
   using Address for address;
@@ -29,9 +33,9 @@ contract ProxyVaultTarget is ERC20, IVault, ProxyStorageAccess, ProxyVaultStore 
   event Invest(uint256 amount);
 
   IStrategy public strategy;
-
   mapping(address => uint256) public contributions;
   mapping(address => uint256) public withdrawals;
+  // FUTURE VERSIONS MUST INSERT NEW STATE VARIABLES ONLY AFTER THIS COMMENT
 
   modifier whenStrategyDefined() {
     require(address(strategy) != address(0), "Strategy must be defined");
@@ -230,6 +234,8 @@ contract ProxyVaultTarget is ERC20, IVault, ProxyStorageAccess, ProxyVaultStore 
     emit Deposit(beneficiary, amount);
   }
 
+
+  // satisfy ERC20Detailed
   function name() external view returns (string memory) {
       return _name();
   }
@@ -240,5 +246,16 @@ contract ProxyVaultTarget is ERC20, IVault, ProxyStorageAccess, ProxyVaultStore 
 
   function decimals() external view returns (uint8) {
       return _decimals();
+  }
+
+  // Satisfy IVault
+  function governance() external view returns (address) {
+      return _governance();
+  }
+  function controller() external view returns (address) {
+      return _controller();
+  }
+  function underlying() external view returns (address) {
+      return address(_underlying());
   }
 }
