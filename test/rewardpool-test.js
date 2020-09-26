@@ -12,7 +12,7 @@ const makeVault = require("./make-vault.js");
 
 BigNumber.config({ DECIMAL_PLACES: 0 });
 
-contract("NoMint reward pool Test", function (accounts) {
+contract.only("NoMint reward pool Test", function (accounts) {
   describe("Basic settings", function () {
     let governance = accounts[0];
     let rewardCollector = accounts[1];

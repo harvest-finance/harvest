@@ -159,7 +159,8 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
   }
 
 
-
+  // Output the percentage NOT lost to slippage, scaled by 10**18.
+  // I.e. if 40% is lost, this will output 0.6 * 10 ** 18
   function slippagePercentage(uint256 inputOne, uint256 outputOne, uint256 inputTwo, uint256 outputTwo) internal pure returns (uint256 e18PercentLost) {
       uint256 noSlippageOutput = outputOne.mul(inputTwo).div(inputOne);  // price of little slippage
 
@@ -167,8 +168,7 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
       if (outputTwo >= noSlippageOutput) return 10 ** 18;
 
       // % lost = 1 - (smaller/larger)
-      return uint256(10 ** 18).sub(outputTwo.mul(10**18).div(noSlippageOutput));
-
+      return outputTwo.mul(10**18).div(noSlippageOutput);
   }
 
   /**
@@ -217,7 +217,7 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
     uint256 percent = slippagePercentage(smallInput, smallOutput, wbtcLimit, projectedOutput);
 
     // Adjusted limit accounting for slippage. Withdrawer pays slippage
-    return wbtclimit.mul(percent).div(10**18);
+    return wbtcLimit.mul(percent).div(10**18);
   }
 
 
