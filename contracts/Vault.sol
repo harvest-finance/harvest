@@ -27,9 +27,6 @@ contract Vault is ERC20, ERC20Detailed, IVault, Controllable {
 
   uint256 public underlyingUnit;
 
-  mapping(address => uint256) public contributions;
-  mapping(address => uint256) public withdrawals;
-
   uint256 public vaultFractionToInvestNumerator;
   uint256 public vaultFractionToInvestDenominator;
 
@@ -94,20 +91,6 @@ contract Vault is ERC20, ERC20Detailed, IVault, Controllable {
     return underlyingBalanceInVault().add(strategy.investedUnderlyingBalance());
   }
 
-  /*
-  * Allows for getting the total contributions ever made.
-  */
-  function getContributions(address holder) view public returns (uint256) {
-    return contributions[holder];
-  }
-
-  /*
-  * Allows for getting the total withdrawals ever made.
-  */
-  function getWithdrawals(address holder) view public returns (uint256) {
-    return withdrawals[holder];
-  }
-
   function getPricePerFullShare() public view returns (uint256) {
     return totalSupply() == 0
         ? underlyingUnit
@@ -143,7 +126,7 @@ contract Vault is ERC20, ERC20Detailed, IVault, Controllable {
 
   function setVaultFractionToInvest(uint256 numerator, uint256 denominator) external onlyGovernance {
     require(denominator > 0, "denominator must be greater than 0");
-    require(numerator < denominator, "denominator must be greater than numerator");
+    require(numerator <= denominator, "denominator must be greater than or equal to the numerator");
     vaultFractionToInvestNumerator = numerator;
     vaultFractionToInvestDenominator = denominator;
   }
@@ -163,6 +146,8 @@ contract Vault is ERC20, ERC20Detailed, IVault, Controllable {
     } else {
       uint256 remainingToInvest = wantInvestInTotal.sub(alreadyInvested);
       return remainingToInvest <= underlyingBalanceInVault()
+        // TODO: we think that the "else" branch of the ternary operation is not
+        // going to get hit
         ? remainingToInvest : underlyingBalanceInVault();
     }
   }
@@ -222,7 +207,6 @@ contract Vault is ERC20, ERC20Detailed, IVault, Controllable {
     underlying.safeTransfer(msg.sender, underlyingAmountToWithdraw);
 
     // update the withdrawal amount for the holder
-    withdrawals[msg.sender] = withdrawals[msg.sender].add(underlyingAmountToWithdraw);
     emit Withdraw(msg.sender, underlyingAmountToWithdraw);
   }
 
@@ -242,7 +226,6 @@ contract Vault is ERC20, ERC20Detailed, IVault, Controllable {
     underlying.safeTransferFrom(sender, address(this), amount);
 
     // update the contribution amount for the beneficiary
-    contributions[beneficiary] = contributions[beneficiary].add(amount);
     emit Deposit(beneficiary, amount);
   }
 }

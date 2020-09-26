@@ -131,7 +131,6 @@ contract("Curve Strategy Stable Unit Test", function (accounts) {
       await _underlying.approve(_vault.address, _amount, { from: _farmer });
       await _vault.deposit(_amount, { from: _farmer });
       assert.equal(_amount, await _vault.balanceOf(_farmer));
-      assert.equal(_amount, await _vault.getContributions(_farmer));
     }
 
     it("A farmer investing dai", async function () {

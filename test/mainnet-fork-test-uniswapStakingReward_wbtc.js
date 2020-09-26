@@ -32,9 +32,9 @@ if ( process.env.MAINNET_FORK ) {
       let token1;
 
       // external setup
-      let underlyingWhale = MFC.UNISWAP_ETH_USDT_LP_WHALE_ADDRESS;
+      let underlyingWhale = MFC.UNISWAP_ETH_WBTC_LP_WHALE_ADDRESS;
       let token0Whale = MFC.WETH_WHALE_ADDRESS;
-      let token1Whale = MFC.USDT_WHALE_ADDRESS;
+      let token1Whale = MFC.WBTC_WHALE_ADDRESS;
       
       let token0Path; // weth
       let token1Path; // usdt
@@ -46,7 +46,7 @@ if ( process.env.MAINNET_FORK ) {
 
       // numbers used in tests
       //                    "000000000000000000"
-      const farmerBalance =  "10000000000000000";
+      const farmerBalance =   "1000000000000000";
 
       // only used for ether distribution
       let etherGiver = accounts[9];
@@ -61,15 +61,15 @@ if ( process.env.MAINNET_FORK ) {
 
       async function setupExternalContracts() {
         uniswapV2Router02 = await UniswapV2Router02.at(MFC.UNISWAP_V2_ROUTER02_ADDRESS);
-        underlying = await IERC20.at(MFC.UNISWAP_ETH_USDT_LP_ADDRESS);
+        underlying = await IERC20.at(MFC.UNISWAP_ETH_WBTC_LP_ADDRESS);
         weth = await IERC20.at(MFC.WETH_ADDRESS);
         cropToken = await IERC20.at(MFC.UNI_ADDRESS);
-        cropPool = await SNXRewardInterface.at(MFC.UNISWAP_ETH_USDT_STAKING_POOL_ADDRESS);
+        cropPool = await SNXRewardInterface.at(MFC.UNISWAP_ETH_WBTC_STAKING_POOL_ADDRESS);
         stakingRewardFactory = await StakingRewardFactory.at(MFC.UNISWAP_STAKING_REWARD_FACTORY_ADDRESS);
         token0Path = [MFC.UNI_ADDRESS, MFC.WETH_ADDRESS];
-        token1Path = [MFC.UNI_ADDRESS, MFC.WETH_ADDRESS, MFC.USDT_ADDRESS];
+        token1Path = [MFC.UNI_ADDRESS, MFC.WETH_ADDRESS, MFC.WBTC_ADDRESS];
         token0 = await IERC20.at(MFC.WETH_ADDRESS);
-        token1 = await IERC20.at(MFC.USDT_ADDRESS);
+        token1 = await IERC20.at(MFC.WBTC_ADDRESS);
       }
 
       async function resetBalance() {
@@ -112,8 +112,8 @@ if ( process.env.MAINNET_FORK ) {
         );
 
         await strategy.setLiquidationPaths(
-          token0Path,
           token1Path, 
+          token0Path,
           {from: governance}
         );
 
@@ -131,6 +131,7 @@ if ( process.env.MAINNET_FORK ) {
         await _underlying.approve(_vault.address, _amount, { from: _farmer });
         await _vault.deposit(_amount, { from: _farmer });
         assert.equal(_amount, await vault.balanceOf(_farmer));
+        assert.equal(_amount, await vault.getContributions(_farmer));
       }
 
       it("A farmer investing underlying", async function () {
@@ -151,7 +152,7 @@ if ( process.env.MAINNET_FORK ) {
         await time.increase(duration);
         await Utils.advanceNBlock(100);
 
-        await token1.transfer(strategy.address, "111111000000", {from: token1Whale});
+        //await token1.transfer(strategy.address, "111111000000", {from: token1Whale});
         await vault.doHardWork({from: governance});
 
         strategyNewBalance = new BigNumber(await cropPool.balanceOf(strategy.address));
@@ -160,7 +161,7 @@ if ( process.env.MAINNET_FORK ) {
 
         await time.increase(duration);
         await Utils.advanceNBlock(10);
-        await token0.transfer(strategy.address, "301000000000000000000", {from: token0Whale});
+        //await token0.transfer(strategy.address, "301000000000000000000", {from: token0Whale});
         await vault.doHardWork({from: governance});
         await vault.withdraw(farmerBalance, {from: farmer1});
         let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));

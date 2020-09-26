@@ -158,6 +158,7 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
       IERC20(crv).safeApprove(uni, 0);
       IERC20(crv).safeApprove(uni, crvBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
+      // todo: check if this can be 0
       IUniswapV2Router02(uni).swapExactTokensForTokens(
         crvBalance, 1, uniswap_CRV2DAI, address(this), block.timestamp
       );
@@ -182,7 +183,7 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   }
 
   /**
-  * Claims and liquidates CRV into yCRV, and then invests all underlying.
+  * Investing all underlying.
   */
   function investedUnderlyingBalance() public view returns (uint256) {
     return Gauge(pool).balanceOf(address(this)).add(

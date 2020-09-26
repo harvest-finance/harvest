@@ -127,11 +127,11 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
   }
 
   function depositArbCheck() public view returns(bool) {
-    uint256 currentPrice = underlyingValueFromYCrv(ycrvUnit);
-    if (currentPrice < curvePriceCheckpoint) {
-      return currentPrice.mul(100).div(curvePriceCheckpoint) > 100 - arbTolerance;
+    uint256 currentPrice = wbtcValueFromMixToken(mixTokenUnit);
+    if (currentPrice < wbtcPriceCheckpoint) {
+      return currentPrice.mul(100).div(wbtcPriceCheckpoint) > 100 - arbTolerance;
     } else {
-      return currentPrice.mul(100).div(curvePriceCheckpoint) < 100 + arbTolerance;
+      return currentPrice.mul(100).div(wbtcPriceCheckpoint) < 100 + arbTolerance;
     }
   }
 
@@ -302,8 +302,8 @@ contract CRVStrategySwerve is IStrategy, ProfitNotifier {
     Mintr(mintr).mint(gauge);
     // claiming rewards and liquidating them
     uint256 crvBalance = IERC20(crv).balanceOf(address(this));
-    emit Liquidating(crvBalance);
     if (crvBalance > sellFloor) {
+      emit Liquidating(crvBalance);
       uint256 wbtcBalanceBefore = IERC20(wbtc).balanceOf(address(this));
       IERC20(crv).safeApprove(uni, 0);
       IERC20(crv).safeApprove(uni, crvBalance);

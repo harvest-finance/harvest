@@ -20,8 +20,8 @@ if ( process.env.MAINNET_FORK ) {
 
   BigNumber.config({DECIMAL_PLACES: 0});
 
-  contract("Mainnet Uniswap Staking Reward", function(accounts){
-    describe("Uniswap Staking Reward earnings", function (){
+  contract("Mainnet Uniswap Staking Reward DAI", function(accounts){
+    describe("Uniswap Staking Reward earnings DAI", function (){
 
       // external contracts
       let uniswapV2Router02;
@@ -32,9 +32,9 @@ if ( process.env.MAINNET_FORK ) {
       let token1;
 
       // external setup
-      let underlyingWhale = MFC.UNISWAP_ETH_USDT_LP_WHALE_ADDRESS;
+      let underlyingWhale = MFC.UNISWAP_ETH_DAI_LP_WHALE_ADDRESS;
       let token0Whale = MFC.WETH_WHALE_ADDRESS;
-      let token1Whale = MFC.USDT_WHALE_ADDRESS;
+      let token1Whale = MFC.DAI_WHALE_ADDRESS;
       
       let token0Path; // weth
       let token1Path; // usdt
@@ -46,7 +46,7 @@ if ( process.env.MAINNET_FORK ) {
 
       // numbers used in tests
       //                    "000000000000000000"
-      const farmerBalance =  "10000000000000000";
+      const farmerBalance = "1000" + "000000000000000000";
 
       // only used for ether distribution
       let etherGiver = accounts[9];
@@ -61,15 +61,15 @@ if ( process.env.MAINNET_FORK ) {
 
       async function setupExternalContracts() {
         uniswapV2Router02 = await UniswapV2Router02.at(MFC.UNISWAP_V2_ROUTER02_ADDRESS);
-        underlying = await IERC20.at(MFC.UNISWAP_ETH_USDT_LP_ADDRESS);
+        underlying = await IERC20.at(MFC.UNISWAP_ETH_DAI_LP_ADDRESS);
         weth = await IERC20.at(MFC.WETH_ADDRESS);
         cropToken = await IERC20.at(MFC.UNI_ADDRESS);
-        cropPool = await SNXRewardInterface.at(MFC.UNISWAP_ETH_USDT_STAKING_POOL_ADDRESS);
+        cropPool = await SNXRewardInterface.at(MFC.UNISWAP_ETH_DAI_STAKING_POOL_ADDRESS);
         stakingRewardFactory = await StakingRewardFactory.at(MFC.UNISWAP_STAKING_REWARD_FACTORY_ADDRESS);
         token0Path = [MFC.UNI_ADDRESS, MFC.WETH_ADDRESS];
-        token1Path = [MFC.UNI_ADDRESS, MFC.WETH_ADDRESS, MFC.USDT_ADDRESS];
+        token1Path = [MFC.UNI_ADDRESS, MFC.WETH_ADDRESS, MFC.DAI_ADDRESS];
         token0 = await IERC20.at(MFC.WETH_ADDRESS);
-        token1 = await IERC20.at(MFC.USDT_ADDRESS);
+        token1 = await IERC20.at(MFC.DAI_ADDRESS);
       }
 
       async function resetBalance() {
@@ -112,8 +112,8 @@ if ( process.env.MAINNET_FORK ) {
         );
 
         await strategy.setLiquidationPaths(
-          token0Path,
-          token1Path, 
+          token1Path,
+          token0Path, 
           {from: governance}
         );
 
@@ -131,6 +131,7 @@ if ( process.env.MAINNET_FORK ) {
         await _underlying.approve(_vault.address, _amount, { from: _farmer });
         await _vault.deposit(_amount, { from: _farmer });
         assert.equal(_amount, await vault.balanceOf(_farmer));
+        assert.equal(_amount, await vault.getContributions(_farmer));
       }
 
       it("A farmer investing underlying", async function () {

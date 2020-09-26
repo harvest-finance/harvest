@@ -96,7 +96,7 @@ contract("Vault Test", function (accounts) {
         vault.setVaultFractionToInvest(100, 1, {
           from: governance,
         }),
-        "denominator must be greater than numerator"
+        "denominator must be greater than or equal to the numerator"
       );
       await expectRevert(
         vault.withdraw(1, {
@@ -157,7 +157,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await usdcUnderlying.balanceOf(farmer));
       assert.equal(farmerBalance, await usdcVault.availableToInvestOut());
       assert.equal(farmerBalance, await usdcVault.underlyingBalanceInVault());
-      assert.equal(farmerBalance, await usdcVault.getContributions(farmer));
       assert.equal(usdcTokenUnit, await usdcVault.getPricePerFullShare());
 
       await usdcVault.withdraw(farmerBalance, { from: farmer });
@@ -165,7 +164,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await usdcVault.balanceOf(farmer));
       assert.equal(0, await usdcVault.availableToInvestOut());
       assert.equal(0, await usdcVault.underlyingBalanceInVault());
-      assert.equal(farmerBalance, await usdcVault.getWithdrawals(farmer));
       assert.equal(
         0,
         await usdcVault.underlyingBalanceWithInvestmentForHolder(farmer)
@@ -197,7 +195,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await underlying.balanceOf(farmer));
       assert.equal(farmerBalance, await vault.availableToInvestOut());
       assert.equal(farmerBalance, await vault.underlyingBalanceInVault());
-      assert.equal(farmerBalance, await vault.getContributions(farmer));
       assert.equal(tokenUnit, await vault.getPricePerFullShare());
 
       await expectRevert(
@@ -212,7 +209,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await vault.balanceOf(farmer));
       assert.equal(0, await vault.availableToInvestOut());
       assert.equal(0, await vault.underlyingBalanceInVault());
-      assert.equal(farmerBalance, await vault.getWithdrawals(farmer));
       assert.equal(
         0,
         await vault.underlyingBalanceWithInvestmentForHolder(farmer)
@@ -233,7 +229,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await underlying.balanceOf(farmer));
       assert.equal(farmerBalance, await vault.availableToInvestOut());
       assert.equal(farmerBalance, await vault.underlyingBalanceInVault());
-      assert.equal(farmerBalance, await vault.getContributions(farmerBob));
       assert.equal(tokenUnit, await vault.getPricePerFullShare());
 
       await vault.withdraw(farmerBalance, { from: farmerBob });
@@ -241,7 +236,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await vault.balanceOf(farmerBob));
       assert.equal(0, await vault.availableToInvestOut());
       assert.equal(0, await vault.underlyingBalanceInVault());
-      assert.equal(farmerBalance, await vault.getWithdrawals(farmerBob));
       assert.equal(
         0,
         await vault.underlyingBalanceWithInvestmentForHolder(farmer)
@@ -301,7 +295,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await vault.balanceOf(farmer));
       assert.equal(0, await vault.availableToInvestOut());
       assert.equal(0, await vault.underlyingBalanceInVault());
-      assert.equal(farmerBalance, await vault.getWithdrawals(farmer));
       assert.equal(
         0,
         await vault.underlyingBalanceWithInvestmentForHolder(farmer)
@@ -356,7 +349,6 @@ contract("Vault Test", function (accounts) {
       assert.equal(0, await vault.balanceOf(farmer));
       assert.equal(0, await vault.availableToInvestOut());
       assert.equal(0, await vault.underlyingBalanceInVault());
-      assert.equal(roundBalancePostLoss, await vault.getWithdrawals(farmer));
       assert.equal(tokenUnit, await vault.getPricePerFullShare());
       assert.equal(
         0,
@@ -404,13 +396,11 @@ contract("Vault Test", function (accounts) {
       await vault.withdraw(roundBalance, { from: farmer });
       assert.equal(roundBalancePostLoss, await underlying.balanceOf(farmer));
       assert.equal(0, await vault.balanceOf(farmer));
-      assert.equal(roundBalancePostLoss, await vault.getWithdrawals(farmer));
 
       // withdraw after the investment for farmerBob, the strategy eats another 10%
       await vault.withdraw(roundBalance, { from: farmerBob });
       assert.equal(roundBalancePostLoss, await underlying.balanceOf(farmerBob));
       assert.equal(0, await vault.balanceOf(farmerBob));
-      assert.equal(roundBalancePostLoss, await vault.getWithdrawals(farmerBob));
 
       // the vault has nothing
       assert.equal(0, await vault.availableToInvestOut());
@@ -497,10 +487,6 @@ contract("Vault Test", function (accounts) {
         await underlying.balanceOf(farmer)
       );
       assert.equal(0, await vault.balanceOf(farmer));
-      assert.equal(
-        roundBalancePostGainFarmer,
-        await vault.getWithdrawals(farmer)
-      );
 
       // withdraw after the investment for farmerBob, the strategy eats another 10%
       await vault.withdraw(expectedShares, { from: farmerBob });
@@ -509,10 +495,6 @@ contract("Vault Test", function (accounts) {
         await underlying.balanceOf(farmerBob)
       );
       assert.equal(0, await vault.balanceOf(farmerBob));
-      assert.equal(
-        roundBalancePostGainFarmerBob,
-        await vault.getWithdrawals(farmerBob)
-      );
 
       // the vault has nothing
       assert.equal(0, await vault.availableToInvestOut());
@@ -535,7 +517,6 @@ contract("Vault Test", function (accounts) {
       await underlying.approve(vault.address, roundBalance, { from: farmer });
       await vault.deposit(roundBalance, { from: farmer });
       assert.equal(roundBalance, await vault.balanceOf(farmer));
-      assert.equal(roundBalance, await vault.getContributions(farmer));
 
       // check pre-investment and post-investment
       assert.equal(roundBalance / 2, await vault.availableToInvestOut());
