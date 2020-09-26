@@ -158,8 +158,12 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
     // now we have the mixed token
   }
 
-  function depositSlippagePercentage(uint256 inputOne, uint256 outputOne, uint256 inputTwo, uint256 outputTwo) internal pure returns (uint256 e18PercentLost) {
-      uint256 noSlippageOutput = outputOne.mul(inputTwo).div(inputTwo);  // price of little slippage
+
+
+  function slippagePercentage(uint256 inputOne, uint256 outputOne, uint256 inputTwo, uint256 outputTwo) internal pure returns (uint256 e18PercentLost) {
+      uint256 noSlippageOutput = outputOne.mul(inputTwo).div(inputOne);  // price of little slippage
+
+      // socializes bonuses
       if (outputTwo >= noSlippageOutput) return 10 ** 18;
 
       // % lost = 1 - (smaller/larger)
@@ -170,8 +174,6 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
   /**
   * Consult the curve protocol. Determine the slippage of a deposit. Return the
   * percentage lost to slippage
-  *
-  * The slippage is computed as `(best_price - worst_price) * inboundWbtc`.
   */
   function depositSlippageCheck(uint256 inboundWbtc) view external returns (uint256 e18PercentLost) {
     // QUESTION:
@@ -193,7 +195,7 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
       true
     );
 
-    return depositSlippagePercentage(smallInput, smallOutput, inboundWbtc, projectedOutput);
+    return slippagePercentage(smallInput, smallOutput, inboundWbtc, projectedOutput);
 
   }
 
