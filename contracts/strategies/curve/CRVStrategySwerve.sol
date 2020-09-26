@@ -176,10 +176,7 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
   * percentage lost to slippage
   */
   function depositSlippageCheck(uint256 inboundWbtc) view external returns (uint256 e18PercentLost) {
-    // QUESTION:
-    // token decimals vary. wbtc has only 8, while most have 18. we don't store
-    // or retrieve that info. so this is 1000 tokenwei when I'd prefer it were
-    // 0.0001 tokens.
+    // A low-slippage trade. The mixtoken value of 1000 wbtc
     uint256 smallInput = 10**4;
 
     // A low-slippage trade. The mixtoken value of a miniscule amount
@@ -196,7 +193,6 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
     );
 
     return slippagePercentage(smallInput, smallOutput, inboundWbtc, projectedOutput);
-
   }
 
   /**
@@ -207,27 +203,21 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
   * Price values are scaled by 10**18 to avoid losing fidelity.
   */
   function includeExitSlippage(uint256 wbtcLimit) view internal returns (uint256) {
+    uint256 smallInput = 10 ** 4;
 
-    // A low-slippage trade. The wbtc value of 0.0001 mixToken
-    uint256 e18BestPrice = wbtcValueFromMixToken(mixTokenUnit.div(10**4)).mul(10**18);
+    // A low-slippage trade. The wbtc value of 1000 mixTokenWei
+    uint256 smallOutput = wbtcValueFromMixToken(smallInput);
 
     // The maximum amount of mix tokens the strategy could consume
-    uint256 mixTokenLimit = ISwerveFi(curve).calc_token_amount(
+    uint256 projectedOutput = ISwerveFi(curve).calc_token_amount(
         wrapCoinAmount(wbtcLimit),
         false  // is not deposit
     );
 
-    // Price at highest slippage
-    uint256 e18WorstPrice = wbtcLimit.mul(10**18).div(mixTokenLimit);
-
-    // likely never happens. Would imply a bonus
-    if (e18BestPrice <= e18WorstPrice) return wbtcLimit;
-
-    // Difference between low-slippage and high-slippage trades
-    uint256 lostToSlippage = ((e18BestPrice.sub(e18WorstPrice)).mul(mixTokenLimit)).div(10**18);
+    uint256 percent = slippagePercentage(smallInput, smallOutput, wbtcLimit, projectedOutput);
 
     // Adjusted limit accounting for slippage. Withdrawer pays slippage
-    return wbtcLimit.sub(lostToSlippage);
+    return wbtclimit.mul(percent).div(10**18);
   }
 
 
