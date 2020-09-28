@@ -6,7 +6,7 @@ const Storage = artifacts.require("Storage");
 const DepositHelper = artifacts.require("DepositHelper");
 const NoopStrategy = artifacts.require("NoopStrategy");
 const ThirdPartyContractThatCallsDepositHelper = artifacts.require("ThirdPartyContractThatCallsDepositHelper");
-
+const makeVault = require("./make-vault.js");
 
 contract("Deposit Helper Test", function (accounts) {
   describe("depositAll", function () {
@@ -48,7 +48,7 @@ contract("Deposit Helper Test", function (accounts) {
         (await underlyingUSDC.balanceOf(farmer)).toString()
       );
 
-      vaultDAI = await Vault.new(storage.address, underlyingDAI.address, 100, 100, {
+      vaultDAI = await makeVault(storage.address, underlyingDAI.address, 100, 100, {
         from: governance,
       });
 
@@ -66,7 +66,7 @@ contract("Deposit Helper Test", function (accounts) {
         }
       );
 
-      vaultUSDC = await Vault.new(storage.address, underlyingUSDC.address, 100, 100, {
+      vaultUSDC = await makeVault(storage.address, underlyingUSDC.address, 100, 100, {
         from: governance,
       });
 
@@ -171,7 +171,7 @@ contract("Deposit Helper Test", function (accounts) {
       await underlyingDAI.approve(depositHelper.address, amountDAI, { from: farmer });
       await underlyingUSDC.approve(depositHelper.address, amountUSDC, { from: farmer });
 
-      vaultUSDC2 = await Vault.new(storage.address, underlyingUSDC.address, 100, 100, {
+      vaultUSDC2 = await makeVault(storage.address, underlyingUSDC.address, 100, 100, {
         from: governance,
       });
 
@@ -190,7 +190,7 @@ contract("Deposit Helper Test", function (accounts) {
       await underlyingDAI.approve(depositHelper.address, amountDAI, { from: farmer });
       await underlyingUSDC.approve(depositHelper.address, amountUSDC, { from: farmer });
 
-      vaultUSDC2 = await Vault.new(storage.address, underlyingUSDC.address, 100, 100, {
+      vaultUSDC2 = await makeVault(storage.address, underlyingUSDC.address, 100, 100, {
         from: governance,
       });
 

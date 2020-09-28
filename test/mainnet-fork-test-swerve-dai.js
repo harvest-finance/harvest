@@ -11,6 +11,7 @@ if (process.env.MAINNET_FORK) {
   const CRVStrategyWBTC = artifacts.require("CRVStrategySwerveDAIMainnet");
   const PriceConvertor = artifacts.require("PriceConvertor");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -85,7 +86,7 @@ if (process.env.MAINNET_FORK) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the wbtcVault with 90% investment
-        wbtcVault = await Vault.new(storage.address, wbtc.address, 90, 100, {
+        wbtcVault = await makeVault(storage.address, wbtc.address, 90, 100, {
           from: governance,
         });
 

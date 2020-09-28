@@ -8,6 +8,7 @@ const MockToken = artifacts.require("MockToken");
 const NoopStrategy = artifacts.require("NoopStrategy");
 const Storage = artifacts.require("Storage");
 const { time } = require("@openzeppelin/test-helpers");
+const makeVault = require("./make-vault.js");
 
 BigNumber.config({ DECIMAL_PLACES: 0 });
 
@@ -61,7 +62,7 @@ contract("NoMint reward pool Test", function (accounts) {
       await storage.setController(controller.address, { from: governance });
 
       // set up the vault with 100% investment
-      vault = await Vault.new(storage.address, underlying.address, 100, 100, {
+      vault = await makeVault(storage.address, underlying.address, 100, 100, {
         from: governance,
       });
 

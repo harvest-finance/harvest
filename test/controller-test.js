@@ -5,6 +5,7 @@ const MockToken = artifacts.require("MockToken");
 const NoopStrategy = artifacts.require("NoopStrategy");
 const Storage = artifacts.require("Storage");
 const HardRewards = artifacts.require("HardRewards");
+const makeVault = require("./make-vault.js");
 
 contract("Controller Test", function (accounts) {
   describe("Deposit and Withdraw", function () {
@@ -38,7 +39,7 @@ contract("Controller Test", function (accounts) {
       await storage.setController(controller.address, { from: governance });
 
       // set up the vault with 100% investment
-      vault = await Vault.new(storage.address, underlying.address, 100, 100, {
+      vault = await makeVault(storage.address, underlying.address, 100, 100, {
         from: governance,
       });
 

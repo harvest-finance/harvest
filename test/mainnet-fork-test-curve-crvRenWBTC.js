@@ -7,8 +7,7 @@ if (process.env.MAINNET_FORK) {
   const Controller = artifacts.require("Controller");
   const Vault = artifacts.require("Vault");
   const Storage = artifacts.require("Storage");
-  const CRVStrategyStable = artifacts.require("CRVStrategyStableMainnet");
-  const CRVStrategyYCRV = artifacts.require("CRVStrategyYCRVMainnet");
+  const CRVStrategyWRenBTCMix = artifacts.require("CRVStrategyWRenBTCMixMainnet");
   const PriceConvertor = artifacts.require("PriceConvertor");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
   const makeVault = require("./make-vault.js");
@@ -21,14 +20,15 @@ if (process.env.MAINNET_FORK) {
 
   BigNumber.config({ DECIMAL_PLACES: 0 });
 
-  contract("Mainnet Curve", function (accounts) {
+  contract.only("Mainnet Curve crvRenWBTC", function (accounts) {
     describe("Curve savings", function () {
       // external contracts
-      let usdt;
+      let wbtc;
+      let crvRenWBTC;
       let ycrv;
 
       // external setup
-      let usdtWhale = MFC.USDT_WHALE_ADDRESS;
+      let crvRenWBTCWhale = MFC.CRV_RENWBTC_WHALE_ADDRESS;
 
       // parties in the protocol
       let governance = accounts[1];
@@ -37,7 +37,7 @@ if (process.env.MAINNET_FORK) {
       let farmer2 = accounts[4];
 
       // numbers used in tests
-      const farmerBalance = "1500000" + "000000";
+      const farmerBalance = "5" + "000000000000000000";
 
       // only used for ether distribution
       let etherGiver = accounts[9];
@@ -45,32 +45,33 @@ if (process.env.MAINNET_FORK) {
       // Core protocol contracts
       let storage;
       let controller;
-      let ycrvVault;
-      let usdtVault;
-      let usdtStrategy;
+      let crvRenWBTCVault;
+      let daiStrategy;
       let ycrvStrategy;
 
       // secondary protocol contracts
 
       async function setupExternalContracts() {
         ycrv = await IERC20.at(MFC.YCRV_ADDRESS);
-        usdt = await IERC20.at(MFC.USDT_ADDRESS);
-        let crv = "0xD533a949740bb3306d119CC777fa900bA034cd52";
+        wbtc = await IERC20.at(MFC.WBTC_ADDRESS);
+        crvRenWBTC = await IERC20.at(MFC.CRV_RENWBTC_ADDRESS);
+
+        let crv = MFC.CRV_ADDRESS;
       }
 
       async function resetDaiBalance() {
         // Give whale some ether to make sure the following actions are good
-        await send.ether(etherGiver, usdtWhale, "1" + "000000000000000000");
+        await send.ether(etherGiver, crvRenWBTCWhale, "1" + "000000000000000000");
         // reset token balance
-        await usdt.transfer(usdtWhale, await usdt.balanceOf(farmer1), {
+        await crvRenWBTC.transfer(crvRenWBTCWhale, await crvRenWBTC.balanceOf(farmer1), {
           from: farmer1,
         });
-        await usdt.transfer(usdtWhale, await usdt.balanceOf(farmer2), {
+        await crvRenWBTC.transfer(crvRenWBTCWhale, await crvRenWBTC.balanceOf(farmer2), {
           from: farmer2,
         });
-        await usdt.transfer(farmer1, farmerBalance, { from: usdtWhale });
-        await usdt.transfer(farmer2, farmerBalance, { from: usdtWhale });
-        assert.equal(farmerBalance, await usdt.balanceOf(farmer1));
+        await crvRenWBTC.transfer(farmer1, farmerBalance, { from: crvRenWBTCWhale });
+        await crvRenWBTC.transfer(farmer2, farmerBalance, { from: crvRenWBTCWhale });
+        assert.equal(farmerBalance, await crvRenWBTC.balanceOf(farmer1));
       }
 
       async function setupCoreProtocol() {
@@ -87,39 +88,22 @@ if (process.env.MAINNET_FORK) {
 
         await storage.setController(controller.address, { from: governance });
 
-        // set up the usdtVault with 90% investment
-        usdtVault = await makeVault(storage.address, usdt.address, 90, 100, {
-          from: governance,
-        });
-
-        // set up the ycrvVault with 98% investment
-        ycrvVault = await makeVault(storage.address, ycrv.address, 98, 100, {
+        // set up the crvRenWBTCVault with 90% investment
+        crvRenWBTCVault = await makeVault(storage.address, crvRenWBTC.address, 90, 100, {
           from: governance,
         });
 
         // set up the strategies
-        ycrvStrategy = await CRVStrategyYCRV.new(
+        crvRenWBTCStrategy = await CRVStrategyWRenBTCMix.new(
           storage.address,
-          ycrvVault.address,
-          { from: governance }
-        );
-        usdtStrategy = await CRVStrategyStable.new(
-          storage.address,
-          usdt.address,
-          usdtVault.address,
-          ycrvVault.address,
+          crvRenWBTCVault.address,
           { from: governance }
         );
 
         // link vaults with strategies
         await controller.addVaultAndStrategy(
-          ycrvVault.address,
-          ycrvStrategy.address,
-          { from: governance }
-        );
-        await controller.addVaultAndStrategy(
-          usdtVault.address,
-          usdtStrategy.address,
+          crvRenWBTCVault.address,
+          crvRenWBTCStrategy.address,
           { from: governance }
         );
       }
@@ -137,19 +121,18 @@ if (process.env.MAINNET_FORK) {
         assert.equal(_amount, await _vault.getContributions(_farmer));
       }
 
-      it("A farmer investing usdt", async function () {
-        let farmerOldBalance = new BigNumber(await usdt.balanceOf(farmer1));
-        await depositVault(farmer1, usdt, usdtVault, farmerBalance);
-        // fees are about $800, we are netting about $120 per hour
-        let hours = 24;
+      it("A farmer investing crvRenWBTC", async function () {
+        let farmerOldBalance = new BigNumber(await crvRenWBTC.balanceOf(farmer1));
+        await depositVault(farmer1, crvRenWBTC, crvRenWBTCVault, farmerBalance);
+        let hours = 12;
         for (let i = 0; i < hours; i++) {
           let blocksPerHour = 240;
           await Utils.advanceNBlock(blocksPerHour);
-          await controller.doHardWork(usdtVault.address, { from: governance });
-          await controller.doHardWork(ycrvVault.address, { from: governance });
+          await controller.doHardWork(crvRenWBTCVault.address, { from: governance });
+          await controller.doHardWork(crvRenWBTCVault.address, { from: governance });
         }
-        await usdtVault.withdraw(farmerBalance, { from: farmer1 });
-        let farmerNewBalance = new BigNumber(await usdt.balanceOf(farmer1));
+        await crvRenWBTCVault.withdraw(farmerBalance, { from: farmer1 });
+        let farmerNewBalance = new BigNumber(await crvRenWBTC.balanceOf(farmer1));
         Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
       });
     });

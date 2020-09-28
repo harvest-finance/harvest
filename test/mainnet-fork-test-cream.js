@@ -12,6 +12,7 @@ if ( process.env.MAINNET_FORK ) {
   const WETHCreamNoFoldStrategy = artifacts.require("WETHCreamNoFoldStrategy");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
   const CToken = artifacts.require("CompleteCToken");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -88,7 +89,7 @@ if ( process.env.MAINNET_FORK ) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the vault with 100% investment
-        vault = await Vault.new(storage.address, weth.address, 95, 100, {from: governance});
+        vault = await makeVault(storage.address, weth.address, 95, 100, {from: governance});
 
         // set up the strategy
         strategy = await WETHCreamNoFoldStrategy.new(
@@ -148,7 +149,7 @@ if ( process.env.MAINNET_FORK ) {
         await vault.doHardWork({from: governance});
         await Utils.advanceNBlock(100);
         await vault.doHardWork({from: governance});
-        
+
         let smallAmount = "100000000000000000"; // 0.1
 
         console.log((new BigNumber(await weth.balanceOf(vault.address))).toFixed());

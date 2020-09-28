@@ -12,6 +12,7 @@ const NoopYVault = artifacts.require("NoopYVault");
 const MockToken = artifacts.require("MockToken");
 const MockCurveFi = artifacts.require("MockCurveFi");
 const MockPriceConvertor = artifacts.require("MockPriceConvertor");
+const makeVault = require("./make-vault.js");
 
 // ERC20 interface
 const IERC20 = artifacts.require("IERC20");
@@ -76,12 +77,12 @@ contract("Curve Strategy Stable Unit Test", function (accounts) {
       await storage.setController(controller.address, { from: governance });
 
       // set up the daiVault with 90% investment
-      daiVault = await Vault.new(storage.address, dai.address, 90, 100, {
+      daiVault = await makeVault(storage.address, dai.address, 90, 100, {
         from: governance,
       });
 
       // set up the ycrvVault with 98% investment
-      ycrvVault = await Vault.new(storage.address, ycrv.address, 98, 100, {
+      ycrvVault = await makeVault(storage.address, ycrv.address, 98, 100, {
         from: governance,
       });
 

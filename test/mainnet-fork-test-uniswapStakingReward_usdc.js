@@ -12,6 +12,7 @@ if ( process.env.MAINNET_FORK ) {
   const SNXRewardInterface = artifacts.require("SNXRewardInterface");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
   const StakingRewardFactory = artifacts.require("StakingRewardsFactory");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -35,7 +36,7 @@ if ( process.env.MAINNET_FORK ) {
       let underlyingWhale = MFC.UNISWAP_ETH_USDC_LP_WHALE_ADDRESS;
       let token0Whale = MFC.WETH_WHALE_ADDRESS;
       let token1Whale = MFC.USDC_WHALE_ADDRESS;
-      
+
       let token0Path; // weth
       let token1Path; // usdt
 
@@ -99,21 +100,21 @@ if ( process.env.MAINNET_FORK ) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the vault with 100% investment
-        vault = await Vault.new(storage.address, underlying.address, 100, 100, {from: governance});
+        vault = await makeVault(storage.address, underlying.address, 100, 100, {from: governance});
 
         // set up the strategy
         strategy = await SNXRewardUniLPStrategy.new(
           storage.address,
           underlying.address,
           vault.address,
-          cropPool.address, 
+          cropPool.address,
           cropToken.address,
           { from: governance }
         );
 
         await strategy.setLiquidationPaths(
           token0Path,
-          token1Path, 
+          token1Path,
           {from: governance}
         );
 
@@ -147,7 +148,7 @@ if ( process.env.MAINNET_FORK ) {
         let strategyOldBalance = new BigNumber(await cropPool.balanceOf(strategy.address));
         assert.equal(strategyOldBalance.toFixed(), farmerOldBalance.toFixed()); // strategy invested into pool after `invest`
         await Utils.advanceNBlock(10);
-        
+
         await vault.doHardWork({from: governance});
         await time.increase(duration);
         await Utils.advanceNBlock(100);

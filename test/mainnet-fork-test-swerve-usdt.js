@@ -11,6 +11,7 @@ if (process.env.MAINNET_FORK) {
   const CRVStrategyWBTC = artifacts.require("CRVStrategySwerveUSDTMainnet");
   const PriceConvertor = artifacts.require("PriceConvertor");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -20,7 +21,7 @@ if (process.env.MAINNET_FORK) {
 
   BigNumber.config({ DECIMAL_PLACES: 0 });
 
-  contract.only("Mainnet Swerve USDT", function (accounts) {
+  contract("Mainnet Swerve USDT", function (accounts) {
     describe("Swerve savings", function () {
       // external contracts
       let wbtc;
@@ -85,7 +86,7 @@ if (process.env.MAINNET_FORK) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the wbtcVault with 90% investment
-        wbtcVault = await Vault.new(storage.address, wbtc.address, 90, 100, {
+        wbtcVault = await makeVault(storage.address, wbtc.address, 90, 100, {
           from: governance,
         });
 

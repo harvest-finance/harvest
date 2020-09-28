@@ -1,9 +1,6 @@
 pragma solidity 0.5.16;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 interface IVault {
-    // the IERC20 part is the share
 
     function underlyingBalanceInVault() external view returns (uint256);
     function underlyingBalanceWithInvestment() external view returns (uint256);

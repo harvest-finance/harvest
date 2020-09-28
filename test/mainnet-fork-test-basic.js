@@ -12,7 +12,7 @@ if ( process.env.MAINNET_FORK ) {
   const NoMintRewardPool = artifacts.require("NoMintRewardPool");
   const NoopStrategy = artifacts.require("NoopStrategy");
   const Storage = artifacts.require("Storage");
-
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -71,7 +71,7 @@ if ( process.env.MAINNET_FORK ) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the vault with 100% investment
-        vault = await Vault.new(storage.address, dai.address, 100, 100, {from: governance});
+        vault = await makeVault(storage.address, dai.address, 100, 100, {from: governance});
 
         // set up the strategy
         strategy = await NoopStrategy.new(

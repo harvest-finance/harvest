@@ -11,6 +11,7 @@ if (process.env.MAINNET_FORK) {
   const CRVStrategyYCRV = artifacts.require("CRVStrategyYCRVMainnet");
   const PriceConvertor = artifacts.require("PriceConvertor");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -87,12 +88,12 @@ if (process.env.MAINNET_FORK) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the usdcVault with 90% investment
-        usdcVault = await Vault.new(storage.address, usdc.address, 90, 100, {
+        usdcVault = await makeVault(storage.address, usdc.address, 90, 100, {
           from: governance,
         });
 
         // set up the ycrvVault with 98% investment
-        ycrvVault = await Vault.new(storage.address, ycrv.address, 98, 100, {
+        ycrvVault = await makeVault(storage.address, ycrv.address, 98, 100, {
           from: governance,
         });
 
@@ -140,7 +141,7 @@ if (process.env.MAINNET_FORK) {
         let farmerOldBalance = new BigNumber(await usdc.balanceOf(farmer1));
         await depositVault(farmer1, usdc, usdcVault, farmerBalance);
         // fees are about $800, we are netting about $120 per hour
-        let hours = 12;
+        let hours = 24;
         for (let i = 0; i < hours; i++) {
           let blocksPerHour = 240;
           await Utils.advanceNBlock(blocksPerHour);

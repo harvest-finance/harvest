@@ -38,7 +38,7 @@ if ( process.env.MAINNET_E2E ) {
 
   BigNumber.config({DECIMAL_PLACES: 0});
 
-  contract("Mainnet End-to-end test", function(accounts){
+  contract("Mainnet End-to-end test with FARM as profit sharing reward", function(accounts){
     describe("basic settings", function (){
 
       // external contracts
@@ -55,7 +55,7 @@ if ( process.env.MAINNET_E2E ) {
       let existingRoute;
 
       // parties in the protocol
-      let governance = accounts[1];
+      let governance = MFC.GOVERNANCE_ADDRESS;
       let farmer1 = accounts[3];
       let farmer2 = accounts[4];
       let farmer3 = accounts[5];
@@ -102,7 +102,7 @@ if ( process.env.MAINNET_E2E ) {
       let hardRewards;
 
       // profit sharing related
-      let daiProfitPool;
+      let farmProfitPool;
 
       /*
           System setup helper functions
@@ -224,19 +224,7 @@ if ( process.env.MAINNET_E2E ) {
       }
 
       async function setupDelayMinter() {
-        delayMinter = await DelayMinter.new(
-          storage.address,
-          farm.address,
-          delayDuration,
-          team,
-          operator,
-          { from: governance }
-        );
-
-        // authorize the delayMinter to mint
-        await farm.addMinter(delayMinter.address, {
-          from: governance,
-        });
+        delayMinter = await DelayMinter.at(MFC.DELAY_MINTER_ADDRESS);
       }
 
       async function setupHardRewards() {
@@ -263,7 +251,7 @@ if ( process.env.MAINNET_E2E ) {
         // deploy storage
         storage = await Storage.new({ from: governance });
 
-        feeRewardForwarder = await FeeRewardForwarder.new(storage.address, MFC.UNISWAP_V2_ROUTER02_ADDRESS, { from: governance });
+        feeRewardForwarder = await FeeRewardForwarder.at(MFC.FEE_REWARD_FORWARDER_ADDRESS);
         // set up controller
         controller = await Controller.new(storage.address, feeRewardForwarder.address, {
           from: governance,
@@ -280,9 +268,7 @@ if ( process.env.MAINNET_E2E ) {
       }
 
       async function setupIncentives() {
-        farm = await RewardToken.new(storage.address, {
-          from: governance,
-        });
+        farm = await RewardToken.at(MFC.FARM_ADDRESS);
 
         await setupRewardPools();
         await setupDelayMinter();
@@ -300,8 +286,8 @@ if ( process.env.MAINNET_E2E ) {
 
       async function setupProfitSharing() {
         // Dai, USDC, and yCRV Vaults all use Dai to share profit
-        daiProfitPool = await NoMintRewardPool.new(
-          dai.address,  // rewardToken should be dai, usdc, ycrv
+        farmProfitPool = await NoMintRewardPool.new(
+          farm.address,  // rewardToken should be $FARM
           farm.address, // governance
           rewardDuration, // duration
           feeRewardForwarder.address, // reward distribution
@@ -316,9 +302,23 @@ if ( process.env.MAINNET_E2E ) {
           {from: governance}
         );
 
+        await feeRewardForwarder.setConversionPath(
+          ycrv.address,
+          farm.address,
+          [MFC.YCRV_ADDRESS, MFC.WETH_ADDRESS, MFC.FARM_ADDRESS],
+          {from: governance}
+        );
+
+        await feeRewardForwarder.setConversionPath(
+          dai.address,
+          farm.address,
+          [MFC.DAI_ADDRESS, MFC.USDC_ADDRESS, MFC.FARM_ADDRESS],
+          {from: governance}
+        );
+
         // Let the feeRewardForwarder know that we are sharing all our profit in this
         // Dai profit pool
-        await feeRewardForwarder.setTokenPool(daiProfitPool.address, { from: governance });
+        await feeRewardForwarder.setTokenPool(farmProfitPool.address, { from: governance });
       }
 
       async function distributeBalance() {
@@ -336,7 +336,7 @@ if ( process.env.MAINNET_E2E ) {
       }
 
       async function renouncePower() {
-        await farm.renounceMinter({from: governance});
+        // no longer needed, was done on mainnet
       }
 
       // Setting up the whole system
@@ -396,6 +396,10 @@ if ( process.env.MAINNET_E2E ) {
       // Farmer's perspective
       async function printBalance( msg, _token, _account){
         console.log(msg, " : " , (await _token.balanceOf(_account)).toString());
+      }
+
+      async function printEarn( msg, _pool, _account) {
+        console.log(msg, " : " , (await _pool.earned(_account)).toString());
       }
 
       async function depositVault(_farmer, _underlying, _vault, _amount) {
@@ -529,11 +533,11 @@ if ( process.env.MAINNET_E2E ) {
 
         // ycrv vault yields ycrv profit pool
         // dai & usdc vault yields dai profit pool
-        await stakeProfitPool(farmer1, daiProfitPool);
-        await stakeProfitPool(farmer2, daiProfitPool);
-        await stakeProfitPool(farmer3, daiProfitPool);
-        await stakeProfitPool(farmer4, daiProfitPool);
-        await stakeProfitPool(farmer5, daiProfitPool);
+        await stakeProfitPool(farmer1, farmProfitPool);
+        await stakeProfitPool(farmer2, farmProfitPool);
+        await stakeProfitPool(farmer3, farmProfitPool);
+        await stakeProfitPool(farmer4, farmProfitPool);
+        await stakeProfitPool(farmer5, farmProfitPool);
 
         // pass some time!
         await doHardWorkOnAllVaults(12);
@@ -542,11 +546,24 @@ if ( process.env.MAINNET_E2E ) {
         await withdrawVault(farmer1, ycrvVault, ycrvRewardPool, "1");
         await withdrawVault(farmer4, usdcVault, usdcRewardPool, "1");
 
-        await daiProfitPool.exit({from:farmer1});
-        await daiProfitPool.exit({from:farmer2});
-        await daiProfitPool.exit({from:farmer3});
-        await daiProfitPool.exit({from:farmer4});
-        await daiProfitPool.exit({from:farmer5});
+        // earned reward token from reward pools
+        await printEarn("earned farmer1", farmProfitPool, farmer1);
+        await printEarn("earned farmer2", farmProfitPool, farmer2);
+        await printEarn("earned farmer3", farmProfitPool, farmer3);
+        await printEarn("earned farmer4", farmProfitPool, farmer4);
+        await printEarn("earned farmer5", farmProfitPool, farmer5);
+
+        assertBNGt(await farmProfitPool.earned(farmer1), 0);
+        assertBNGt(await farmProfitPool.earned(farmer2), 0);
+        assertBNGt(await farmProfitPool.earned(farmer3), 0);
+        assertBNGt(await farmProfitPool.earned(farmer4), 0);
+        assertBNGt(await farmProfitPool.earned(farmer5), 0);
+
+        await farmProfitPool.exit({from:farmer1});
+        await farmProfitPool.exit({from:farmer2});
+        await farmProfitPool.exit({from:farmer3});
+        await farmProfitPool.exit({from:farmer4});
+        await farmProfitPool.exit({from:farmer5});
 
         await exitVault(farmer1, ycrvVault, ycrvRewardPool);
         await exitVault(farmer2, ycrvVault, ycrvRewardPool);
@@ -573,24 +590,11 @@ if ( process.env.MAINNET_E2E ) {
         assertBNGt(await usdc.balanceOf(farmer5), farmerBalance6);
 
         // Made money from profit sharing
-        await printBalance("dai farmer1", dai, farmer1);
-        await printBalance("dai farmer2", dai, farmer2);
-        await printBalance("dai farmer3", dai, farmer3);
-        await printBalance("dai farmer4", dai, farmer4);
-        await printBalance("dai farmer5", dai, farmer5);
-        assertBNGt(await dai.balanceOf(farmer1), 0);
-        assertBNGt(await dai.balanceOf(farmer2), 0);
-        assertBNGt(await dai.balanceOf(farmer3), 0);
-        assertBNGt(await dai.balanceOf(farmer4), 0);
-        assertBNGt(await dai.balanceOf(farmer5), 0);
-
-        // earned reward token from reward pools
         await printBalance("farm farmer1", farm, farmer1);
         await printBalance("farm farmer2", farm, farmer2);
         await printBalance("farm farmer3", farm, farmer3);
         await printBalance("farm farmer4", farm, farmer4);
         await printBalance("farm farmer5", farm, farmer5);
-
         assertBNGt(await farm.balanceOf(farmer1), 0);
         assertBNGt(await farm.balanceOf(farmer2), 0);
         assertBNGt(await farm.balanceOf(farmer3), 0);

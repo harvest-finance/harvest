@@ -55,7 +55,11 @@ function assertNEqBN(a, b){
   let _b = new BigNumber(b);
   assert.equal(_a.eq(_b), false);
 }
-  
+
+async function inBNfixed(a) {
+  return await (new BigNumber(a)).toFixed();
+}
+
 module.exports = {
   gasLogger,
   gasLoggerNum,
@@ -66,4 +70,5 @@ module.exports = {
   assertApproxBNEq,
   assertBNGt,
   assertNEqBN,
+  inBNfixed,
 };

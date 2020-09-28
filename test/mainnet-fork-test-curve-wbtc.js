@@ -10,6 +10,7 @@ if (process.env.MAINNET_FORK) {
   const CRVStrategyWBTC = artifacts.require("CRVStrategyWBTCMainnet");
   const PriceConvertor = artifacts.require("PriceConvertor");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -85,7 +86,7 @@ if (process.env.MAINNET_FORK) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the wbtcVault with 90% investment
-        wbtcVault = await Vault.new(storage.address, wbtc.address, 90, 100, {
+        wbtcVault = await makeVault(storage.address, wbtc.address, 90, 100, {
           from: governance,
         });
 
@@ -120,7 +121,7 @@ if (process.env.MAINNET_FORK) {
       it("A farmer investing wbtc", async function () {
         let farmerOldBalance = new BigNumber(await wbtc.balanceOf(farmer1));
         await depositVault(farmer1, wbtc, wbtcVault, farmerBalance);
-        let hours = 12;
+        let hours = 24;
         for (let i = 0; i < hours; i++) {
           let blocksPerHour = 240;
           await Utils.advanceNBlock(blocksPerHour);

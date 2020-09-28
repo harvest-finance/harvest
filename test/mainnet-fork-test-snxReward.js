@@ -11,6 +11,7 @@ if ( process.env.MAINNET_FORK ) {
   const SNXRewardStrategy = artifacts.require("SNXRewardStrategy");
   const SNXRewardInterface = artifacts.require("SNXRewardInterface");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -61,7 +62,7 @@ if ( process.env.MAINNET_FORK ) {
         yfii = await IERC20.at(MFC.YFII_ADDRESS);
         yfiiPool = await SNXRewardInterface.at(MFC.YFII_POOL_ADDRESS);
         existingRoute = [MFC.YFII_ADDRESS, MFC.WETH_ADDRESS, MFC.YCRV_ADDRESS];
-        nonExistingRoute = [MFC.YFII_ADDRESS];        
+        nonExistingRoute = [MFC.YFII_ADDRESS];
       }
 
       async function resetYCRVBalance() {
@@ -88,7 +89,7 @@ if ( process.env.MAINNET_FORK ) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the vault with 100% investment
-        vault = await Vault.new(storage.address, ycrv.address, 100, 100, {from: governance});
+        vault = await makeVault(storage.address, ycrv.address, 100, 100, {from: governance});
 
         // set up the strategy
         strategy = await SNXRewardStrategy.new(
@@ -99,9 +100,9 @@ if ( process.env.MAINNET_FORK ) {
         );
 
         await strategy.setRewardSource(
-          yfiiPool.address, 
-          yfii.address, 
-          nonExistingRoute, 
+          yfiiPool.address,
+          yfii.address,
+          nonExistingRoute,
           {from: governance}
         );
 
@@ -132,7 +133,7 @@ if ( process.env.MAINNET_FORK ) {
         let strategyOldBalance = new BigNumber(await yfiiPool.balanceOf(strategy.address));
         assert.equal(strategyOldBalance.toFixed(), farmerOldBalance.toFixed()); // strategy invested into pool after `invest`
         await Utils.advanceNBlock(10);
-        
+
         await vault.doHardWork({from: governance});
         await time.increase(duration);
         await Utils.advanceNBlock(100);

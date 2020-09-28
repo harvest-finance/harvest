@@ -11,6 +11,7 @@ if (process.env.MAINNET_FORK) {
   const CRVStrategyYCRV = artifacts.require("CRVStrategyYCRVMainnet");
   const PriceConvertor = artifacts.require("PriceConvertor");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
+  const makeVault = require("./make-vault.js");
 
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
@@ -87,12 +88,12 @@ if (process.env.MAINNET_FORK) {
         await storage.setController(controller.address, { from: governance });
 
         // set up the daiVault with 90% investment
-        daiVault = await Vault.new(storage.address, dai.address, 90, 100, {
+        daiVault = await makeVault(storage.address, dai.address, 90, 100, {
           from: governance,
         });
 
         // set up the ycrvVault with 98% investment
-        ycrvVault = await Vault.new(storage.address, ycrv.address, 98, 100, {
+        ycrvVault = await makeVault(storage.address, ycrv.address, 98, 100, {
           from: governance,
         });
 
@@ -140,15 +141,20 @@ if (process.env.MAINNET_FORK) {
         let farmerOldBalance = new BigNumber(await dai.balanceOf(farmer1));
         await depositVault(farmer1, dai, daiVault, farmerBalance);
         // fees are about $800, we are netting about $120 per hour
-        let hours = 12;
+        let hours = 24;
         for (let i = 0; i < hours; i++) {
           let blocksPerHour = 240;
           await Utils.advanceNBlock(blocksPerHour);
           await controller.doHardWork(daiVault.address, { from: governance });
           await controller.doHardWork(ycrvVault.address, { from: governance });
+          let sharePrice = new BigNumber(await daiVault.getPricePerFullShare());
+          console.log("Share price: " + sharePrice.toFixed());
         }
         await daiVault.withdraw(farmerBalance, { from: farmer1 });
         let farmerNewBalance = new BigNumber(await dai.balanceOf(farmer1));
+
+        console.log("new balance: " + farmerNewBalance.toFixed());
+        console.log("old balance: " + farmerOldBalance.toFixed());
         Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
       });
     });
