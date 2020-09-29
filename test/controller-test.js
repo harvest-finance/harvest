@@ -1,4 +1,4 @@
-const { constants } = require("@openzeppelin/test-helpers");
+const { constants, expectRevert, time } = require("@openzeppelin/test-helpers");
 const Controller = artifacts.require("Controller");
 const Vault = artifacts.require("Vault");
 const MockToken = artifacts.require("MockToken");
@@ -6,6 +6,7 @@ const NoopStrategy = artifacts.require("NoopStrategy");
 const Storage = artifacts.require("Storage");
 const HardRewards = artifacts.require("HardRewards");
 const makeVault = require("./make-vault.js");
+const { waitHours } = require("./Utils.js");
 
 contract("Controller Test", function (accounts) {
   describe("Deposit and Withdraw", function () {
@@ -89,7 +90,25 @@ contract("Controller Test", function (accounts) {
       assert.equal(strategy.address, await vault.strategy());
 
       // add strategy for the vault
-      await vault.setStrategy(anotherNoopStrategy.address, {from: governance});
+      // strategy was already set, so we will fail without waiting for 12 hours
+      // no announcement
+      await expectRevert(
+        vault.setStrategy(anotherNoopStrategy.address, { from: governance }),
+        "The strategy exists and switch timelock did not elapse yet"
+      );
+      await vault.announceStrategyUpdate(anotherNoopStrategy.address, {
+        from: governance,
+      });
+      // still not enough time elapsed
+      await expectRevert(
+        vault.setStrategy(anotherNoopStrategy.address, { from: governance }),
+        "The strategy exists and switch timelock did not elapse yet"
+      );
+      await waitHours(12);
+      await vault.setStrategy(anotherNoopStrategy.address, {
+        from: governance,
+      });
+      assert.equal(anotherNoopStrategy.address, await vault.strategy());
 
       // deposit some tokens
       await underlying.approve(vault.address, farmerBalance, { from: farmer });
@@ -106,7 +125,10 @@ contract("Controller Test", function (accounts) {
       );
 
       // the investment should be in the strategy
-      assert.equal(farmerBalance, await anotherNoopStrategy.investedUnderlyingBalance());
+      assert.equal(
+        farmerBalance,
+        await anotherNoopStrategy.investedUnderlyingBalance()
+      );
 
       // add hard rewards
       let token = await MockToken.new({ from: governance });

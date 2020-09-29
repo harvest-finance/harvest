@@ -12,6 +12,9 @@ contract VaultStorage is Initializable {
   bytes32 internal constant _NEXT_IMPLEMENTATION_SLOT = 0xb1acf527cd7cd1668b30e5a9a1c0d845714604de29ce560150922c9d8c0937df;
   bytes32 internal constant _NEXT_IMPLEMENTATION_TIMESTAMP_SLOT = 0x3bc747f4b148b37be485de3223c90b4468252967d2ea7f9fcbd8b6e653f434c9;
   bytes32 internal constant _NEXT_IMPLEMENTATION_DELAY_SLOT = 0x82ddc3be3f0c1a6870327f78f4979a0b37b21b16736ef5be6a7a7a35e530bcf0;
+  bytes32 internal constant _STRATEGY_TIME_LOCK_SLOT = 0x6d02338b2e4c913c0f7d380e2798409838a48a2c4d57d52742a808c82d713d8b;
+  bytes32 internal constant _FUTURE_STRATEGY_SLOT = 0xb441b53a4e42c2ca9182bc7ede99bedba7a5d9360d9dfbd31fa8ee2dc8590610;
+  bytes32 internal constant _STRATEGY_UPDATE_TIME_SLOT = 0x56e7c0e75875c6497f0de657009613a32558904b5c10771a825cc330feff7e72;
 
   constructor() public {
     assert(_STRATEGY_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.strategy")) - 1));
@@ -22,6 +25,9 @@ contract VaultStorage is Initializable {
     assert(_NEXT_IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.nextImplementation")) - 1));
     assert(_NEXT_IMPLEMENTATION_TIMESTAMP_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.nextImplementationTimestamp")) - 1));
     assert(_NEXT_IMPLEMENTATION_DELAY_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.nextImplementationDelay")) - 1));
+    assert(_STRATEGY_TIME_LOCK_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.strategyTimeLock")) - 1));
+    assert(_FUTURE_STRATEGY_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.futureStrategy")) - 1));
+    assert(_STRATEGY_UPDATE_TIME_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.strategyUpdateTime")) - 1));
   }
 
   function initialize(
@@ -29,13 +35,17 @@ contract VaultStorage is Initializable {
     uint256 _toInvestNumerator,
     uint256 _toInvestDenominator,
     uint256 _underlyingUnit,
-    uint256 _delay
+    uint256 _implementationChangeDelay,
+    uint256 _strategyChangeDelay
   ) public initializer {
     _setUnderlying(_underlying);
     _setVaultFractionToInvestNumerator(_toInvestNumerator);
     _setVaultFractionToInvestDenominator(_toInvestDenominator);
     _setUnderlyingUnit(_underlyingUnit);
-    _setNextImplementationDelay(_delay);
+    _setNextImplementationDelay(_implementationChangeDelay);
+    _setStrategyTimeLock(_strategyChangeDelay);
+    _setStrategyUpdateTime(0);
+    _setFutureStrategy(address(0));
   }
 
   function _setStrategy(address _address) internal {
@@ -100,6 +110,30 @@ contract VaultStorage is Initializable {
 
   function _nextImplementationDelay() internal view returns (uint256) {
     return getUint256(_NEXT_IMPLEMENTATION_DELAY_SLOT);
+  }
+
+  function _setStrategyTimeLock(uint256 _value) internal {
+    setUint256(_STRATEGY_TIME_LOCK_SLOT, _value);
+  }
+
+  function _strategyTimeLock() internal view returns (uint256) {
+    return getUint256(_STRATEGY_TIME_LOCK_SLOT);
+  }
+
+  function _setFutureStrategy(address _value) internal {
+    setAddress(_FUTURE_STRATEGY_SLOT, _value);
+  }
+
+  function _futureStrategy() internal view returns (address) {
+    return getAddress(_FUTURE_STRATEGY_SLOT);
+  }
+
+  function _setStrategyUpdateTime(uint256 _value) internal {
+    setUint256(_STRATEGY_UPDATE_TIME_SLOT, _value);
+  }
+
+  function _strategyUpdateTime() internal view returns (uint256) {
+    return getUint256(_STRATEGY_UPDATE_TIME_SLOT);
   }
 
   function setAddress(bytes32 slot, address _address) private {

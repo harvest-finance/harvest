@@ -7,6 +7,7 @@ const Storage = artifacts.require("Storage");
 const HardRewards = artifacts.require("HardRewards");
 const HardWorkHelper = artifacts.require("HardWorkHelper");
 const makeVault = require("./make-vault.js");
+const { waitHours } = require("./Utils.js");
 
 contract("Hard Work Helper Test", function (accounts) {
   describe("Public hard work calls", function () {
@@ -68,6 +69,10 @@ contract("Hard Work Helper Test", function (accounts) {
       assert.equal(strategy.address, await vault.strategy());
 
       // add strategy for the vault
+      await vault.announceStrategyUpdate(anotherNoopStrategy.address, {
+        from: governance,
+      });
+      await waitHours(12);
       await vault.setStrategy(anotherNoopStrategy.address, {
         from: governance,
       });

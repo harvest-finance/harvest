@@ -29,6 +29,9 @@ async function advanceNBlock (n) {
   let endBlock = startingBlock.addn(n);
   await time.advanceBlockTo(endBlock);
 }
+async function waitHours (n) {
+  await time.increase(n * 3600 + 1); 
+};
 
 function assertBNEq(a, b){
   let _a = new BigNumber(a);
@@ -71,4 +74,5 @@ module.exports = {
   assertBNGt,
   assertNEqBN,
   inBNfixed,
+  waitHours,
 };

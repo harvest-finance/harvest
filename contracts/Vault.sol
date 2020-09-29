@@ -21,6 +21,8 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
   event Withdraw(address indexed beneficiary, uint256 amount);
   event Deposit(address indexed beneficiary, uint256 amount);
   event Invest(uint256 amount);
+  event StrategyAnnounced(address newStrategy, uint256 time);
+  event StrategyChanged(address newStrategy, address oldStrategy);
 
   constructor() public {
   }
@@ -45,12 +47,14 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
 
     uint256 underlyingUnit = 10 ** uint256(ERC20Detailed(address(_underlying)).decimals());
     uint256 implementationDelay = 48 hours;
+    uint256 strategyChangeDelay = 12 hours;
     VaultStorage.initialize(
       _underlying,
       _toInvestNumerator,
       _toInvestDenominator,
       underlyingUnit,
-      implementationDelay
+      implementationDelay,
+      strategyChangeDelay
     );
   }
 
@@ -147,11 +151,52 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
         .div(totalSupply());
   }
 
+  function futureStrategy() public view returns (address) {
+    return _futureStrategy();
+  }
+
+  function strategyUpdateTime() public view returns (uint256) {
+    return _strategyUpdateTime();
+  }
+
+  function strategyTimeLock() public view returns (uint256) {
+    return _strategyTimeLock();
+  }
+
+  function canUpdateStrategy(address _strategy) public view returns(bool) {
+    return strategy() == address(0) // no strategy was set yet
+      || (_strategy == futureStrategy()
+          && block.timestamp > strategyUpdateTime()
+          && strategyUpdateTime() > 0); // or the timelock has passed
+  }
+
+  /**
+  * Indicates that the strategy update will happen in the future
+  */
+  function announceStrategyUpdate(address _strategy) public onlyControllerOrGovernance {
+    // records a new timestamp
+    uint256 when = block.timestamp.add(strategyTimeLock());
+    _setStrategyUpdateTime(when);
+    _setFutureStrategy(_strategy);
+    emit StrategyAnnounced(_strategy, when);
+  }
+
+  /**
+  * Finalizes (or cancels) the strategy update by resetting the data
+  */
+  function finalizeStrategyUpdate() public onlyControllerOrGovernance {
+    _setStrategyUpdateTime(0);
+    _setFutureStrategy(address(0));
+  }
+
   function setStrategy(address _strategy) public onlyControllerOrGovernance {
+    require(canUpdateStrategy(_strategy),
+      "The strategy exists and switch timelock did not elapse yet");
     require(_strategy != address(0), "new _strategy cannot be empty");
     require(IStrategy(_strategy).underlying() == address(underlying()), "Vault underlying must match Strategy underlying");
     require(IStrategy(_strategy).vault() == address(this), "the strategy does not belong to this vault");
 
+    emit StrategyChanged(_strategy, strategy());
     if (address(_strategy) != address(strategy())) {
       if (address(strategy()) != address(0)) { // if the original strategy (no underscore) is defined
         IERC20(underlying()).safeApprove(address(strategy()), 0);
@@ -161,6 +206,7 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
       IERC20(underlying()).safeApprove(address(strategy()), 0);
       IERC20(underlying()).safeApprove(address(strategy()), uint256(~0));
     }
+    finalizeStrategyUpdate();
   }
 
   function setVaultFractionToInvest(uint256 numerator, uint256 denominator) external onlyGovernance {

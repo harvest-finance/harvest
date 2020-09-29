@@ -101,9 +101,15 @@ contract("Vault Test", function (accounts) {
       );
 
       // initialize so that we can call functions
-      await vault.initializeVault(storage.address, underlying.address, 100, 100, {
-        from: governance,
-      });
+      await vault.initializeVault(
+        storage.address,
+        underlying.address,
+        100,
+        100,
+        {
+          from: governance,
+        }
+      );
       await expectRevert(
         vault.setVaultFractionToInvest(0, 0, {
           from: governance,
@@ -166,9 +172,15 @@ contract("Vault Test", function (accounts) {
       );
 
       // set up the vault with 100% investment
-      const usdcVault = await makeVault(storage.address, usdcUnderlying.address, 100, 100, {
-        from: governance,
-      });
+      const usdcVault = await makeVault(
+        storage.address,
+        usdcUnderlying.address,
+        100,
+        100,
+        {
+          from: governance,
+        }
+      );
 
       // set up the strategy
       strategy = await NoopStrategy.new(
@@ -180,7 +192,9 @@ contract("Vault Test", function (accounts) {
       await usdcVault.setStrategy(strategy.address, { from: controller });
 
       assert.equal(usdcTokenUnit, await usdcVault.getPricePerFullShare());
-      await usdcUnderlying.approve(usdcVault.address, farmerBalance, { from: farmer });
+      await usdcUnderlying.approve(usdcVault.address, farmerBalance, {
+        from: farmer,
+      });
       await usdcVault.deposit(farmerBalance, { from: farmer });
       assert.equal(farmerBalance, await usdcVault.balanceOf(farmer));
       assert.equal(
@@ -342,6 +356,10 @@ contract("Vault Test", function (accounts) {
         vault.address,
         { from: governance }
       );
+      await vault.announceStrategyUpdate(strategy.address, {
+        from: governance,
+      });
+      await Utils.waitHours(12);
       await vault.setStrategy(strategy.address, { from: controller });
 
       // reset token balance
@@ -397,6 +415,10 @@ contract("Vault Test", function (accounts) {
         vault.address,
         { from: governance }
       );
+      await vault.announceStrategyUpdate(strategy.address, {
+        from: governance,
+      });
+      await Utils.waitHours(12);
       await vault.setStrategy(strategy.address, { from: controller });
 
       // reset token balance
@@ -449,6 +471,10 @@ contract("Vault Test", function (accounts) {
         { from: governance }
       );
       underlying.addMinter(strategy.address, { from: governance });
+      await vault.announceStrategyUpdate(strategy.address, {
+        from: governance,
+      });
+      await Utils.waitHours(12);
       await vault.setStrategy(strategy.address, { from: controller });
 
       // reset token balance
@@ -636,7 +662,7 @@ contract("Vault Test", function (accounts) {
       assert.equal(farmerBalance, await vault.balanceOf(farmer));
     });
 
-    describe("Upgradability test", function() {
+    describe("Upgradability test", function () {
       // ensures that deposits are intact after an upgrade
       // and that the strategy can no longer be changed in the upgraded vault
       // (to confirm the behavior changed after an upgrade)
@@ -653,11 +679,21 @@ contract("Vault Test", function (accounts) {
 
         // making the vault upgradable faster
         vault = await Vault.at(vaultAsProxy.address);
-        await vault.initializeVault(storage.address, underlying.address, 100, 100, {
-          from: governance,
-        });
-        vaultUpgradableSoonerImpl = await VaultUpgradableSooner.at(vaultAsProxy.address);
-        await vaultUpgradableSoonerImpl.overrideNextImplementationDelay(shorterDelay);
+        await vault.initializeVault(
+          storage.address,
+          underlying.address,
+          100,
+          100,
+          {
+            from: governance,
+          }
+        );
+        vaultUpgradableSoonerImpl = await VaultUpgradableSooner.at(
+          vaultAsProxy.address
+        );
+        await vaultUpgradableSoonerImpl.overrideNextImplementationDelay(
+          shorterDelay
+        );
 
         // set up the strategy
         strategy = await ProfitStrategy.new(
@@ -687,7 +723,10 @@ contract("Vault Test", function (accounts) {
         // initially, shouldUpgrade is false
         let shouldUpgrade = await vault.shouldUpgrade();
         assert.equal(false, shouldUpgrade[0]);
-        assert.equal("0x0000000000000000000000000000000000000000", shouldUpgrade[1]);
+        assert.equal(
+          "0x0000000000000000000000000000000000000000",
+          shouldUpgrade[1]
+        );
 
         newVault = await VaultStrategySwitchLock.new({
           from: governance,
@@ -705,12 +744,15 @@ contract("Vault Test", function (accounts) {
 
         await expectRevert(
           vaultAsProxy.upgrade({
-           from: governance,
-         }),
+            from: governance,
+          }),
           "Upgrade not scheduled"
         );
 
-        assert.equal(vaultImplementation.address, await vaultAsProxy.implementation());
+        assert.equal(
+          vaultImplementation.address,
+          await vaultAsProxy.implementation()
+        );
 
         // advancing time to whenever it is possible to upgrade
         await Utils.advanceNBlock(Math.round(shorterDelay / 15) + 1);
@@ -721,7 +763,10 @@ contract("Vault Test", function (accounts) {
         assert.equal(newVault.address, shouldUpgrade[1]);
 
         // Upgrading!!!
-        assert.equal(vaultImplementation.address, await vaultAsProxy.implementation());
+        assert.equal(
+          vaultImplementation.address,
+          await vaultAsProxy.implementation()
+        );
         await vaultAsProxy.upgrade({
           from: governance,
         });
@@ -731,15 +776,18 @@ contract("Vault Test", function (accounts) {
         // checking that the behaviour has actually changed
         await expectRevert(
           vault.setStrategy(strategy.address, {
-           from: governance,
-         }),
+            from: governance,
+          }),
           "Strategy change not allowed"
         );
 
         // now, shouldUpgrade is back to false
         shouldUpgrade = await vault.shouldUpgrade();
         assert.equal(false, shouldUpgrade[0]);
-        assert.equal("0x0000000000000000000000000000000000000000", shouldUpgrade[1]);
+        assert.equal(
+          "0x0000000000000000000000000000000000000000",
+          shouldUpgrade[1]
+        );
 
         // Continue interactions as before
         // The following is copy-paste from the Profit test above
