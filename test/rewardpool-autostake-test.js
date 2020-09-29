@@ -84,7 +84,7 @@ contract("Autostaking for reward pool Test", function (accounts) {
         totalReward
       );
 
-      autostake = await AutoStake.new(storage.address, rewardPool.address, rewardToken.address, greylistEscrow, 0, 0, 0, 0);
+      autostake = await AutoStake.new(storage.address, rewardPool.address, rewardToken.address, greylistEscrow);
       await rewardPool.initExclusive(autostake.address);
     });
 
@@ -124,7 +124,7 @@ contract("Autostaking for reward pool Test", function (accounts) {
       assert.equal(farmerBalance, farmer2RealBalance);
     });
 
-    it("One single stake. The farmer takes every reward after the duration is over. Unit", async function () {
+    it("One single stake. No reward. Unit test for precision", async function () {
 
       let oneThousand = "1000" + "000000000000000000";
       let unit = "1" + "000000000000000000";
@@ -147,7 +147,7 @@ contract("Autostaking for reward pool Test", function (accounts) {
       assert.equal(oneThousand, await rewardPool.balanceOf(autostake.address));
     });
 
-    it("One single stake. The farmer takes every reward after the duration is over. Unit", async function () {
+    it("One single stake. With reward. Unit test for precision", async function () {
 
       let oneThousand = "1000" + "000000000000000000";
       let twoThousand = "1000" + "000000000000000000";
@@ -169,13 +169,13 @@ contract("Autostaking for reward pool Test", function (accounts) {
       assert.equal(oneThousand, await autostake.totalShares());
       assert.equal(unit, await autostake.valuePerShare());
       assert.equal(oneThousand, await autostake.totalValue());
-      assert.equal(oneThousand, await rewardPool.balanceOf(autostake.address));    
+      assert.equal(oneThousand, await rewardPool.balanceOf(autostake.address));
 
       // notifyReward
       await rewardPool.notifyRewardAmount(oneThousand, {
         from: rewardDistribution,
       });
-      
+
       // time passes
       await time.advanceBlock();
       await time.increase(20 * rewardDuration);
@@ -199,7 +199,7 @@ contract("Autostaking for reward pool Test", function (accounts) {
       assert.equal(finalTotalReward, await rewardPool.balanceOf(autostake.address));
     });
 
-    it("Two stakes. Unit", async function () {
+    it("Two stakes. Unit test for precision.", async function () {
 
       let oneThousand = "1000" + "000000000000000000";
       let twoThousand = "2000" + "000000000000000000";
@@ -311,7 +311,7 @@ contract("Autostaking for reward pool Test", function (accounts) {
       Utils.assertBNGt(farmer1Balance_afterFarmer2Exit, farmer1Balance_afterFarmer2Stake);
       await autostake.exit({ from: farmer1 });
       let farmer1RealBalance = await rewardToken.balanceOf(farmer1);
-      assert.equal(farmer1Balance_afterFarmer2Exit, farmer1RealBalance);
+      Utils.assertBNEq(farmer1Balance_afterFarmer2Exit, farmer1RealBalance);
     });
 
     it("refreshAutoStake helps stacking up the stake", async function () {
@@ -342,9 +342,8 @@ contract("Autostaking for reward pool Test", function (accounts) {
       await time.increase(0.2 * rewardDuration);
       await time.advanceBlock();
 
-
-      let farmer1Balance_afterFarmer2Exit = await autostake.balanceOf(farmer1);
-      Utils.assertBNGt(farmer1Balance_afterFarmer2Exit, farmer1Balance_afterFarmer2Stake);
+      let newFarmerBalance = await autostake.balanceOf(farmer1);
+      Utils.assertBNGt(newFarmerBalance, farmerBalance);
       await autostake.exit({ from: farmer1 });
     });
 
@@ -435,7 +434,7 @@ contract("Autostaking for reward pool Test", function (accounts) {
       await controller.addToGreyList(greylistTarget.address, {from: governance});
       console.log("(total value, value per share): ", await Utils.inBNfixed(await autostake.totalValue()), ", ", await Utils.inBNfixed(await autostake.valuePerShare()));
       console.log("autostake.balanceOf(greylist): ", await Utils.inBNfixed(await autostake.balanceOf(greylistTarget.address))); // should be farmerBalance
-  
+
       // greylistTarget exits, but since it is greylisted, the token withdraw gets denied
       await greylistTarget.exit({from: farmer2});
       console.log("(total value, value per share): ", await Utils.inBNfixed(await autostake.totalValue()), ", ", await Utils.inBNfixed(await autostake.valuePerShare()));
@@ -448,8 +447,8 @@ contract("Autostaking for reward pool Test", function (accounts) {
       console.log("greylistEscrowBalance: ", await Utils.inBNfixed(greylistEscrowBalance));
       console.log("(total value, value per share): ", await Utils.inBNfixed(await autostake.totalValue()), ", ", await Utils.inBNfixed(await autostake.valuePerShare()));
       console.log("autostake.balanceOf(greylist): ", await Utils.inBNfixed(await autostake.balanceOf(greylistTarget.address)));
-      
-      // There will be some precision loss when the second farmer stakes. 
+
+      // There will be some precision loss when the second farmer stakes.
       // The amount he stakes needs to be divided by the valuePerShare, and some value would be lost.
       // The value there should be negligible. Thus here we are using assertApproxBNEq to check that they are roughly the same.
       // "10000000000000000" is 0.1

@@ -16,11 +16,6 @@ contract AutoStake is Controllable {
   uint256 public totalValue = 0;
   mapping(address => uint256) public share;
 
-  uint256 public slopeNumerator;
-  uint256 public slopeDenominator;
-  uint256 public weightStartTime;
-  uint256 public weightCap;
-
   address public greylistEscrow;
   mapping (address => bool) smartContractStakers;
 
@@ -32,50 +27,17 @@ contract AutoStake is Controllable {
 
   event SmartContractRecorded(address indexed smartContractAddress, address indexed smartContractInitiator);
 
-  constructor(address _storage, address pool, address token, address _greylistEscrow, uint256 _slopeNumerator, uint256 _slopeDenominator, uint256 _weightStartTime, uint256 _weightCap) public 
+  constructor(address _storage, address pool, address token, address _greylistEscrow) public
   Controllable(_storage)
   {
     rewardPool = NoMintRewardPool(pool);
     lpToken = IERC20(token);
-
-    slopeNumerator = _slopeNumerator;
-    slopeDenominator = _slopeDenominator;
-    weightStartTime = _weightStartTime;
-    weightCap = _weightCap;
     greylistEscrow = _greylistEscrow;
   }
 
   function setGreylistEscrow(address _greylistEscrow) external onlyGovernance {
     require(_greylistEscrow == address(0), "escrow cannot be empty address");
     greylistEscrow = _greylistEscrow;
-  }
-
-  function setWeightStartTime(uint256 _weightStartTime) external onlyGovernance {
-    require(weightStartTime != 0, "Weighted Start time has already been set");
-    weightStartTime = weightStartTime;
-  }
-
-  function setWeightCap(uint256 _weightCap) external onlyGovernance {
-    require(_weightCap > weightCap, "New weight cap needs to be larger");
-    weightCap = _weightCap;
-  }
-
-  function timeWeight(uint256 calTime) public view returns (uint256) {
-    if(weightStartTime == 0 || calTime < weightStartTime) {
-      return unit;
-    }
-
-    // simple linear model
-    // 1 + (timeElapsed * slope)
-    uint256 calWeight = unit.add(unit.mul(calTime - weightStartTime).mul(slopeNumerator).div(slopeDenominator));
-    
-    // if weightCap is 0, it means that there is no cap. So we should always return calculated weight.
-    // Otherwise, we check if the calculated weight has exceeded the cap
-    if(calWeight > weightCap && weightCap != 0) {
-      return weightCap;
-    } else {
-      return calWeight;
-    }
   }
 
   function refreshAutoStake() external {
@@ -98,7 +60,7 @@ contract AutoStake is Controllable {
     } else {
       // now we can issue shares
       lpToken.safeTransferFrom(msg.sender, address(this), amount);
-      uint256 sharesToIssue = amount.mul(unit).div(valuePerShare).mul(unit).div(timeWeight(block.timestamp));
+      uint256 sharesToIssue = amount.mul(unit).div(valuePerShare);
       totalShares = totalShares.add(sharesToIssue);
       share[msg.sender] = share[msg.sender].add(sharesToIssue);
 
@@ -122,7 +84,7 @@ contract AutoStake is Controllable {
     // If it is a smart contract, then
     // make sure that it is not on our greyList.
     if (isGreylisted(msg.sender)) {
-      // only Smart contracts can be denied 
+      // only Smart contracts can be denied
       emit SmartContractDenied(msg.sender);
     } else {
       // now we can transfer funds and burn shares
@@ -149,7 +111,7 @@ contract AutoStake is Controllable {
     share[greyListed] = 0;
     emit ForceGreylistExited(greyListed, toTransfer);
 
-    updateValuePerShare(); 
+    updateValuePerShare();
     restakeIntoRewardPool();
   }
 
@@ -178,7 +140,7 @@ contract AutoStake is Controllable {
     if(lpToken.balanceOf(address(this)) != 0){
       // stake back to the pool
       lpToken.safeApprove(address(rewardPool), 0);
-      lpToken.safeApprove(address(rewardPool), totalValue);
+      lpToken.safeApprove(address(rewardPool), lpToken.balanceOf(address(this)));
       rewardPool.stake(lpToken.balanceOf(address(this)));
     }
   }
