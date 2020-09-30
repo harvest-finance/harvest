@@ -114,6 +114,14 @@ contract SNXRewardUniLPStrategy is IStrategy, Controllable, RewardTokenProfitNot
     return true;
   }
 
+  function exitAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
+  function entranceAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
   /*
   *   In case there are some issues discovered about the pool or underlying asset
   *   Governance can exit the pool properly
@@ -175,7 +183,7 @@ contract SNXRewardUniLPStrategy is IStrategy, Controllable, RewardTokenProfitNot
       // sell Uni to token2
       // we can accept 1 as minimum because this is called only by a trusted role
       remainingRewardBalance = IERC20(rewardToken).balanceOf(address(this));
-      
+
       IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
         remainingRewardBalance,
         amountOutMin,
@@ -197,10 +205,10 @@ contract SNXRewardUniLPStrategy is IStrategy, Controllable, RewardTokenProfitNot
       (,,liquidity) = IUniswapV2Router02(uniswapRouterV2).addLiquidity(
         uniLPComponentToken0,
         uniLPComponentToken1,
-        token0Amount, 
+        token0Amount,
         token1Amount,
         1,  // we are willing to take whatever the pair gives us
-        1,  
+        1,
         address(this),
         block.timestamp
       );

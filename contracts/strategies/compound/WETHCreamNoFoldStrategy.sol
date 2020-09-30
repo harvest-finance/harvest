@@ -74,6 +74,14 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
     suppliedInWETH = ctoken.balanceOfUnderlying(address(this));
   }
 
+  function exitAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
+  function entranceAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
   function depositArbCheck() public view returns(bool) {
     // there's no arb here.
     return true;

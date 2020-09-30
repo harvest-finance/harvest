@@ -96,6 +96,14 @@ contract SNXRewardStrategy is IStrategy, Controllable, ProfitNotifier {
     return true;
   }
 
+  function exitAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
+  function entranceAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
   /*
   *   In case there are some issues discovered about the pool or underlying asset
   *   Governance can exit the pool properly

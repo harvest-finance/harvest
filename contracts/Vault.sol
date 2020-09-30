@@ -299,13 +299,23 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     require(amount > 0, "Cannot deposit 0");
     require(beneficiary != address(0), "holder must be defined");
 
-    if (address(strategy()) != address(0)) {
-      require(IStrategy(strategy()).depositArbCheck(), "Too much arb");
+    IStrategy _strat = IStrategy(strategy());
+
+    if (address(_strat) != address(0)) {
+      require(_strat.depositArbCheck(), "Too much arb");
     }
 
-    uint256 toMint = totalSupply() == 0
-        ? amount
-        : amount.mul(totalSupply()).div(underlyingBalanceWithInvestment());
+    uint256 toMint = amount;
+    if (totalSupply() != 0) {
+        toMint = amount
+          .mul(totalSupply())
+          .div(underlyingBalanceWithInvestment());
+        // account for slippage too
+        uint256 afterSlippage = _strat.entranceAfterSlippage(amount);
+        toMint = amount
+          .mul(afterSlippage)
+          .div(10**18);
+    }
     _mint(beneficiary, toMint);
 
     IERC20(underlying()).safeTransferFrom(sender, address(this), amount);

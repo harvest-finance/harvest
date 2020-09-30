@@ -49,6 +49,14 @@ contract ProfitStrategyVariable is IStrategy, ProfitNotifier {
     return true;
   }
 
+  function exitAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
+  function entranceAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
   /*
   * Returns the total invested amount.
   */

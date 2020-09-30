@@ -10,8 +10,9 @@ interface IController {
     // even if an EOA is being added to the greyList, he/she will still be able
     // to interact with the whole system as if nothing happened.
     // Only smart contracts will be affected by being added to the greyList.
-    // This grey list is only used in Vault.sol, see the code there for reference
-    function greyList(address _target) external returns(bool);
+    // This grey list is used in Vault.sol and AutoStake.sol, see the code
+    // there for reference
+    function greyList(address _target) external view returns(bool);
 
     function addVaultAndStrategy(address _vault, address _strategy) external;
     function doHardWork(address _vault) external;

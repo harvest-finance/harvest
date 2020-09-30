@@ -32,6 +32,14 @@ contract NoopStrategy is IStrategy, Controllable {
     return true;
   }
 
+  function exitAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
+  function entranceAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
   modifier onlyVault() {
     require(msg.sender == address(vault), "The caller must be the vault");
     _;

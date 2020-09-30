@@ -10,6 +10,7 @@ import "./interfaces/Gauge.sol";
 import "./interfaces/ISwerveFi.sol";
 import "./interfaces/yVault.sol";
 import "./interfaces/IPriceConvertor.sol";
+import "../SlippageAware.sol";
 import "../ProfitNotifier.sol";
 import "../../hardworkInterface/IVault.sol";
 import "../../hardworkInterface/IController.sol";
@@ -19,7 +20,7 @@ import "../../uniswap/interfaces/IUniswapV2Router02.sol";
 
 // This is an exact clone of the WBTC strategy
 // Naming was not adjusted for easy diff
-contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
+contract CRVStrategySwerve is IStrategy, ProfitNotifier, SlippageAware {
 
   enum TokenIndex {DAI, USDC, USDT, TUSD}
 
@@ -158,68 +159,16 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
     // now we have the mixed token
   }
 
-
-  // Output the percentage NOT lost to slippage, scaled by 10**18.
-  // I.e. if 40% is lost, this will output 0.6 * 10 ** 18
-  function percentAfterSlippage(uint256 inputOne, uint256 outputOne, uint256 inputTwo, uint256 outputTwo) internal pure returns (uint256 e18PercentLost) {
-      uint256 noSlippageOutput = outputOne.mul(inputTwo).div(inputOne);  // price of little slippage
-
-      // socializes bonuses
-      if (outputTwo >= noSlippageOutput) return 10 ** 18;
-
-      // % lost = 1 - (smaller/larger)
-      return outputTwo.mul(10**18).div(noSlippageOutput);
+  function preflightEntrance(uint256 amount) internal view returns (uint256) {
+      return ISwerveFi(curve).calc_token_amount(
+        wrapCoinAmount(amount),
+        true  // is deposit
+      );
   }
 
-  /**
-  * Consult the curve protocol. Determine the slippage of a deposit. Return the
-  * percentage lost to slippage
-  */
-  function depositSlippageCheck(uint256 inboundWbtc) view external returns (uint256 e18PercentLost) {
-    // A low-slippage trade. The mixtoken value of 1000 wbtc
-    uint256 smallInput = 10**4;
-
-    // A low-slippage trade. The mixtoken value of a miniscule amount
-    // price = (output * 10 ** 18) / input
-    uint256 smallOutput = ISwerveFi(curve).calc_token_amount(
-      wrapCoinAmount(smallInput),
-      true  // is deposit
-    );
-
-    // price = (output * 10 ** 18) / input
-    uint256 projectedOutput = ISwerveFi(curve).calc_token_amount(
-      wrapCoinAmount(inboundWbtc),
-      true
-    );
-
-    return percentAfterSlippage(smallInput, smallOutput, inboundWbtc, projectedOutput);
+  function preflightExit(uint256 amount) internal view returns (uint256) {
+      return wbtcValueFromMixToken(amount);
   }
-
-  /**
-  * Consult the curve protocol. Determine the slippage of a withdrawal. Charge the
-  * slippage to the user withdrawing by decreasing the limit on wbtc they receive.
-  *
-  * The slippage is computed as `(best_price - worst_price) * maximum_mix_token_allocation`.
-  * Price values are scaled by 10**18 to avoid losing fidelity.
-  */
-  function includeExitSlippage(uint256 wbtcLimit) view internal returns (uint256) {
-    uint256 smallInput = 10 ** 4;
-
-    // A low-slippage trade. The wbtc value of 1000 mixTokenWei
-    uint256 smallOutput = wbtcValueFromMixToken(smallInput);
-
-    // The maximum amount of mix tokens the strategy could consume
-    uint256 projectedOutput = ISwerveFi(curve).calc_token_amount(
-        wrapCoinAmount(wbtcLimit),
-        false  // is not deposit
-    );
-
-    uint256 percent = percentAfterSlippage(smallInput, smallOutput, wbtcLimit, projectedOutput);
-
-    // Adjusted limit accounting for slippage. Withdrawer pays slippage
-    return wbtcLimit.mul(percent).div(10**18);
-  }
-
 
   /**
   * Uses the Curve protocol to convert the mixed token back into the wbtc asset. If it cannot
@@ -236,7 +185,7 @@ contract CRVStrategySwerve is IStrategy, IStrategyV2, ProfitNotifier {
 
     if (wbtcLimit < wbtcMaximumAmount) {
       // Charge costs imposed on the pool by withdrawing to the withdrawer
-      wbtcLimit = includeExitSlippage(wbtcLimit);
+      wbtcLimit = wbtcLimit.mul(exitAfterSlippage(wbtcLimit)).div(10**18);
 
       // we want less than what we can get, we ask for the exact amount
       // now we can remove the liquidity

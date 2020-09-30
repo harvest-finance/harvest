@@ -92,6 +92,13 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
     return true;
   }
 
+  function entranceAfterSlippage(uint256 amount) external view returns (uint256) {
+      return 10**18; // no slippage
+  }
+  function exitAfterSlippage(uint256 amount) external view returns (uint256) {
+      return 10**18; // no slippage
+  }
+
   /**
   * Salvages a token. We should not be able to salvage CRV and yCRV (underlying).
   */

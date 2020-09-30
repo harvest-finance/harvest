@@ -10,6 +10,7 @@ import "./interfaces/Gauge.sol";
 import "./interfaces/ICurveFi.sol";
 import "./interfaces/yVault.sol";
 import "./interfaces/IPriceConvertor.sol";
+import "../SlippageAware.sol";
 import "../../hardworkInterface/IVault.sol";
 import "../../hardworkInterface/IController.sol";
 import "../../hardworkInterface/IStrategy.sol";
@@ -23,7 +24,7 @@ import "../../Controllable.sol";
 * ycrv vault. This strategy will not be liquidating any yield crops (CRV), because the strategy
 * of the ycrv vault will do that for us.
 */
-contract CRVStrategyStable is IStrategy, Controllable {
+contract CRVStrategyStable is IStrategy, Controllable, SlippageAware {
 
   enum TokenIndex {DAI, USDC, USDT}
 
@@ -278,6 +279,20 @@ contract CRVStrategyStable is IStrategy, Controllable {
   */
   function underlyingValueFromYCrv(uint256 ycrvBalance) public view returns (uint256) {
     return IPriceConvertor(convertor).yCrvToUnderlying(ycrvBalance, uint256(tokenIndex));
+  }
+
+  function preflightEntrance(uint256 amount) internal view returns (uint256) {
+      return ICurveFi(curve).calc_token_amount(
+        wrapCoinAmount(amount),
+        true  // is deposit
+      );
+  }
+
+  function preflightExit(uint256 amount) internal view returns (uint256) {
+      return ICurveFi(curve).calc_token_amount(
+        wrapCoinAmount(amount),
+        false  // is not deposit
+      );
   }
 
   /**

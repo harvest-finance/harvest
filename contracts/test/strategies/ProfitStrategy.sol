@@ -37,6 +37,14 @@ contract ProfitStrategy is IStrategy, Controllable {
     return true;
   }
 
+  function exitAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
+  function entranceAfterSlippage(uint256 amount) public view returns (uint256) {
+    return 10**18;
+  }
+
   modifier restricted() {
     require(msg.sender == address(vault) || msg.sender == address(controller()),
       "The sender has to be the controller or vault");
