@@ -33,9 +33,10 @@ FARM token: <br />
 | WETH-USDT-LP Vault | UNI-V2 | fUNI-V2 | [0xB19EbFB37A936cCe783142955D39Ca70Aa29D43c](https://etherscan.io/address/0xB19EbFB37A936cCe783142955D39Ca70Aa29D43c)|
 | WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE](https://etherscan.io/address/0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE)|
 | WETH | WETH | fWETH | [0x8e298734681adbfc41ee5d17ff8b0d6d803e7098](https://etherscan.io/address/0x8e298734681adbfc41ee5d17ff8b0d6d803e7098) |
-|DAI Vault | DAI | fDAI | [0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac](https://etherscan.io/address/0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac) |
+| DAI Vault | DAI | fDAI | [0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac](https://etherscan.io/address/0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac) |
 | USDC Vault | USDC | fUSDC| [0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f](https://etherscan.io/address/0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f) |
 | USDT Vault | USDT | fUSDT | [0xc7EE21406BB581e741FBb8B21f213188433D9f2F](https://etherscan.io/address/0xc7EE21406BB581e741FBb8B21f213188433D9f2F) |
+| TUSD Vault | TUSD | fTUSD | [0x7674622c63Bee7F46E86a4A5A18976693D54441b](https://etherscan.io/address/0x7674622c63bee7f46e86a4a5a18976693d54441b) |
 | WBTC Vault | WBTC | fWBTC | [0xc07eb91961662d275e2d285bdc21885a4db136b0](https://etherscan.io/address/0xc07eb91961662d275e2d285bdc21885a4db136b0) |
 | RENBTC Vault | RENBTC | fRENBTC | [0xfbe122d0ba3c75e1f7c80bd27613c9f35b81feec](https://etherscan.io/address/0xfbe122d0ba3c75e1f7c80bd27613c9f35b81feec) |
 | CRVRENBTC Vault | CRVRENBTC | fCRVRENBTC | [0x192e9d29d43db385063799bc239e772c3b6888f3](https://etherscan.io/address/0x192e9d29d43db385063799bc239e772c3b6888f3) |
@@ -46,9 +47,12 @@ FARM token: <br />
 | DAI Pool  | fDAI | FARM | [0xF9E5f9024c2f3f2908A1d0e7272861a767C9484b](https://etherscan.io/address/0xF9E5f9024c2f3f2908A1d0e7272861a767C9484b) |
 | USDC Pool | fUSDC | FARM | [0xE1f9A3EE001a2EcC906E8de637DBf20BB2d44633](https://etherscan.io/address/0xE1f9A3EE001a2EcC906E8de637DBf20BB2d44633) |
 | USDT Pool | fUSDT | FARM | [0x5bd997039FFF16F653EF15D1428F2C791519f58d](https://etherscan.io/address/0x5bd997039FFF16F653EF15D1428F2C791519f58d) |
+| TUSD Pool | fTUSD | FARM | [0xeC56a21CF0D7FeB93C25587C12bFfe094aa0eCdA](https://etherscan.io/address/0xeC56a21CF0D7FeB93C25587C12bFfe094aa0eCdA) |
 | WBTC Pool | fWBTC | FARM | [0x6291eCe696CB6682a9bb1d42fca4160771b1D7CC](https://etherscan.io/address/0x6291eCe696CB6682a9bb1d42fca4160771b1D7CC) |
 | RENBTC Pool | fRENBTC | FARM | [0xCFE1103863F9e7Cf3452Ca8932Eef44d314bf9C5](https://etherscan.io/address/0xCFE1103863F9e7Cf3452Ca8932Eef44d314bf9C5) |
 | CRVRENWBTC Pool | fCRVRENWBTC | FARM | [0x5365A2C47b90EE8C9317faC20edC3ce7037384FB](https://etherscan.io/address/0x5365A2C47b90EE8C9317faC20edC3ce7037384FB) |
+| Profit Sharing | FARM | FARM | [0x25550Cccbd68533Fa04bFD3e3AC4D09f9e00Fc50](https://etherscan.io/address/0x25550Cccbd68533Fa04bFD3e3AC4D09f9e00Fc50#code) |
+
 
 | LP Token Pool    |      Stake Token      |  Reward Token | Reward Pool Contract Link |
 |-----------|:----------------------|--------------:|:----------------:|
@@ -59,20 +63,7 @@ FARM token: <br />
 | fUSDT  Uniswap | [USDT/fUSDT UNI-v2](https://uniswap.info/pair/0x713f62ccf8545Ff1Df19E5d7Ab94887cFaf95677) | FARM | [0x316De40F36da4C54AFf11C1D83081555Cca41270](https://etherscan.io/address/0x316De40F36da4C54AFf11C1D83081555Cca41270) |
 
 
-| Farm    |      Stake Token      |  Reward Token |  Balancer Pool Link | Reward Pool Contract Link |
-|-----------|:----------------------|--------------:|:-------------------:|:----------------:|
-| CRV:FARM  |  90/10 CRV/FARM BPT   | FARM          | [balancer pool](https://pools.balancer.exchange/#/pool/0xac6bac9dc3de2c14b420e287de8ecb330d96e492/) | [0x45A760B3E83FF8C107C4df955b1483De0982F393](https://etherscan.io/address/0x45A760B3E83FF8C107C4df955b1483De0982F393) |
-| SWRV:FARM |  90/10 SWRV/FARM BPT   |  FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xf9f2df6e0e369145481a32fcd260e353aa20c1a6/) | [0x44356324864a30216e89193bc8b0f6309227d690](https://etherscan.io/address/0x44356324864a30216e89193bc8b0f6309227d690) |
-| BASED/sUSD:FARM | 90/10 BASED+sUSD/FARM BPT |    FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xf76206115617f090f5a49961a78bcf99bb91cfee/) | [0xf465573288D9D89C6E89b1bc3BC9ce2b997E77dF](https://etherscan.io/address/0xf465573288D9D89C6E89b1bc3BC9ce2b997E77dF) |
-| AMPL/ETH:FARM  |  90/10 AMPL+ETH/FARM BPT   | FARM          | [balancer pool](https://pools.balancer.exchange/#/pool/0xdfb341093ea062a74bd19a222c74abdcb97c067b/) | [0x7AF4458D3aBD61C3fd187Bb9f1Bbf917Cd4be9B8](https://etherscan.io/address/0x7AF4458D3aBD61C3fd187Bb9f1Bbf917Cd4be9B8) |
-| YFV:FARM |  90/10 YVF/FARM BPT   |  FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0x97cd8e51cd6c888567c6c620188b8fb264ee8e91/) | [0x158edB94D0bfC093952fB3009DeeED613042907c](https://etherscan.io/address/0x158edB94D0bfC093952fB3009DeeED613042907c) |
-| SUSHI:FARM | 90/10 SUSHI/FARM BPT |    FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xb39ce7fa5953bebc6697112e88cd11579cbca579/) | [0x26582BeA67B30AF166b7FCD3424Ba1E0638Ab136](https://etherscan.io/address/0x26582BeA67B30AF166b7FCD3424Ba1E0638Ab136) |
-| LINK:FARM  |  90/10 LINK/FARM BPT   | FARM          | [balancer pool](https://pools.balancer.exchange/#/pool/0x418d3dfca5099923cd57e0bf9ed1e9994f515152/) | [0x19f8cE19c9730A1d0db5149e65E48c2f0DAa9919](https://etherscan.io/address/0x19f8cE19c9730A1d0db5149e65E48c2f0DAa9919) |
-| PASTA/ETH:FARM |  90/10 PASTA+ETH/FARM BPT   |  FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xa3e69ebce417ee0508d6996340126ad60078fcdd/) | [0xB4D1D6150dAc0D1A994AfB2A196adadBE639FF95](https://etherscan.io/address/0xB4D1D6150dAc0D1A994AfB2A196adadBE639FF95) |
-| PYLON:FARM | 90/10 PYLON/FARM BPT |    FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0x1e2dA0aa71155726C5C0E39AF76Ac0c2e8F74bEF/) | [0x2f97D9f870a773186CB01742Ff298777BBF6f244](https://etherscan.io/address/0x2f97D9f870a773186CB01742Ff298777BBF6f244) |
-
-
-### Expiring pools from week 1
+### Expiring pools from previous weeka
 
 These pools will not receive any new rewards.
 
@@ -104,4 +95,18 @@ PASTA + ETH LP Pool (accepts UNI-V2 combo of PASTA and ETH, gives you FARM):<br 
 0xC6f39CFf6797baC5e29275177b6E8e315cF87D95
 
 Balancer 5/95 pool: [0x0395e4a17ff11d36dac9959f2d7c8eca10fe89c9](https://pools.balancer.exchange/#/pool/0x0395e4a17ff11d36dac9959f2d7c8eca10fe89c9)
+
+
+| Farm    |      Stake Token      |  Reward Token |  Balancer Pool Link | Reward Pool Contract Link |
+|-----------|:----------------------|--------------:|:-------------------:|:----------------:|
+| CRV:FARM  |  90/10 CRV/FARM BPT   | FARM          | [balancer pool](https://pools.balancer.exchange/#/pool/0xac6bac9dc3de2c14b420e287de8ecb330d96e492/) | [0x45A760B3E83FF8C107C4df955b1483De0982F393](https://etherscan.io/address/0x45A760B3E83FF8C107C4df955b1483De0982F393) |
+| SWRV:FARM |  90/10 SWRV/FARM BPT   |  FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xf9f2df6e0e369145481a32fcd260e353aa20c1a6/) | [0x44356324864a30216e89193bc8b0f6309227d690](https://etherscan.io/address/0x44356324864a30216e89193bc8b0f6309227d690) |
+| BASED/sUSD:FARM | 90/10 BASED+sUSD/FARM BPT |    FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xf76206115617f090f5a49961a78bcf99bb91cfee/) | [0xf465573288D9D89C6E89b1bc3BC9ce2b997E77dF](https://etherscan.io/address/0xf465573288D9D89C6E89b1bc3BC9ce2b997E77dF) |
+| AMPL/ETH:FARM  |  90/10 AMPL+ETH/FARM BPT   | FARM          | [balancer pool](https://pools.balancer.exchange/#/pool/0xdfb341093ea062a74bd19a222c74abdcb97c067b/) | [0x7AF4458D3aBD61C3fd187Bb9f1Bbf917Cd4be9B8](https://etherscan.io/address/0x7AF4458D3aBD61C3fd187Bb9f1Bbf917Cd4be9B8) |
+| YFV:FARM |  90/10 YVF/FARM BPT   |  FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0x97cd8e51cd6c888567c6c620188b8fb264ee8e91/) | [0x158edB94D0bfC093952fB3009DeeED613042907c](https://etherscan.io/address/0x158edB94D0bfC093952fB3009DeeED613042907c) |
+| SUSHI:FARM | 90/10 SUSHI/FARM BPT |    FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xb39ce7fa5953bebc6697112e88cd11579cbca579/) | [0x26582BeA67B30AF166b7FCD3424Ba1E0638Ab136](https://etherscan.io/address/0x26582BeA67B30AF166b7FCD3424Ba1E0638Ab136) |
+| LINK:FARM  |  90/10 LINK/FARM BPT   | FARM          | [balancer pool](https://pools.balancer.exchange/#/pool/0x418d3dfca5099923cd57e0bf9ed1e9994f515152/) | [0x19f8cE19c9730A1d0db5149e65E48c2f0DAa9919](https://etherscan.io/address/0x19f8cE19c9730A1d0db5149e65E48c2f0DAa9919) |
+| PASTA/ETH:FARM |  90/10 PASTA+ETH/FARM BPT   |  FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0xa3e69ebce417ee0508d6996340126ad60078fcdd/) | [0xB4D1D6150dAc0D1A994AfB2A196adadBE639FF95](https://etherscan.io/address/0xB4D1D6150dAc0D1A994AfB2A196adadBE639FF95) |
+| PYLON:FARM | 90/10 PYLON/FARM BPT |    FARM | [balancer pool](https://pools.balancer.exchange/#/pool/0x1e2dA0aa71155726C5C0E39AF76Ac0c2e8F74bEF/) | [0x2f97D9f870a773186CB01742Ff298777BBF6f244](https://etherscan.io/address/0x2f97D9f870a773186CB01742Ff298777BBF6f244) |
+
 
