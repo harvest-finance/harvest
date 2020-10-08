@@ -18,6 +18,12 @@ Community Wiki: [https://farm.chainwiki.dev/en/home](https://farm.chainwiki.dev/
 
 策略: [https://farm.chainwiki.dev/zh/策略](https://farm.chainwiki.dev/zh/%E7%AD%96%E7%95%A5)
 
+## Audits
+
+**Haechi:** We acquired an [audit from Haechi](https://github.com/harvest-finance/harvest/blob/master/audits/Haechi-Harvest.pdf) which should assure our farmers that their crops are safe and bread for the people will be produced, no matter what the future brings. The audit highlighted one issue classified as major (initially pointed out by the community, thus it is already fixed), and 5 additional minor issues, 4 of which are in fact decentralization features and design choices that we actively made for our platform. The one remaining minor issue was fixed as well. We would like to thank Haechi for their hard work on this audit and keeping our farmers safe.
+
+**PeckShield:** We acquired an [audit from PeckShield](https://github.com/harvest-finance/harvest/blob/master/audits/PeckShield-Harvest.pdf) which should assure our farmers that their crops are safe and bread for the people will be produced, no matter what the future brings. The main issue pointed out by PeckShield is the privileged role of our 0xf00d deployer address. Based on the discussion with our community, we have implemented timelock mechanisms that provide the farmers with an opportunity to leave the farm if they disagree with the deployer's actions before these actions are executed. An additional issue related to CRVStrategyStable's depositArbCheck() was pointed out by our wonderful community and was already fixed before the report by PeckShield was completed. Other non-informational issues do not affect the system, or are explicit design choices and decentralization features made by our team. We would like to thank PeckShield for their hard work on this audit and keeping our farmers safe.
+
 ## Addresses
 
 We recommend interacting with Harvest via interfaces provided by our website. Direct interaction 
