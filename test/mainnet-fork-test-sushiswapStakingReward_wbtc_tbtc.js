@@ -17,7 +17,7 @@ if ( process.env.MAINNET_FORK ) {
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
   // UniswapV2 Router
-  const UniswapV2Router02 = artifacts.require("UniswapV2Router02");
+  const UniswapV2Router02 = artifacts.require("IUniswapV2Router02");
 
   BigNumber.config({DECIMAL_PLACES: 0});
 
@@ -60,7 +60,7 @@ if ( process.env.MAINNET_FORK ) {
       let feeRewardForwarder;
 
 
-      async function setupExternalContracts()
+      async function setupExternalContracts() {
         underlying = await IERC20.at(MFC.SUSHISWAP_WBTC_TBTC_LP_ADDRESS);
         cropToken = await IERC20.at(MFC.SUSHI_ADDRESS);
         cropPool = await IMasterChef.at(MFC.SUSHISWAP_MASTER_CHEF);
