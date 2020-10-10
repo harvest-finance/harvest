@@ -6,7 +6,8 @@
   "scripts": {
     "test": "npx truffle test",
     "test-cov": "export RUNNING_COVERAGE=True && truffle run coverage --network=development",
-    "test-mainnet-only": "truffle build && export MAINNET_FORK=True && npx truffle test ./test/mainnet-fork-test-basic.js ./test/mainnet-fork-test-curve-dai.js ./test/mainnet-fork-test-curve-usdc.js ./test/mainnet-fork-test-curve-usdt.js ./test/mainnet-fork-test-snxReward.js",
+    "test-mainnet-only": "truffle build && export MAINNET_FORK=True && npx truffle test ./test/mainnet-fork-test-basic.js ./test/mainnet-fork-test-curve-dai.js ./test/mainnet-fork-test-curve-usdc.js ./test/mainnet-fork-test-curve-usdt.js ./test/mainnet-fork-test-snxReward.js ./test/mainnet-fork-test-sushiswapStakingReward_wbtc_tbtc.js",
+    "test-mainnet-sushiswap": "truffle build && export MAINNET_FORK=True && npx truffle test ./test/mainnet-fork-test-sushiswapStakingReward_wbtc_tbtc.js",
     "test-mainnet-e2e": "truffle build && export MAINNET_E2E=True && npx truffle test ./test/mainnet-e2e.js"
   },
   "repository": {
