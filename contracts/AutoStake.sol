@@ -145,7 +145,7 @@ contract AutoStake is Controllable {
     }
   }
 
-  function isGreylisted(address _target) internal view returns (bool) {
+  function isGreylisted(address _target) internal returns (bool) {
     return (smartContractStakers[_target] && IController(controller()).greyList(_target));
   }
 }
