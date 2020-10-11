@@ -64,10 +64,12 @@ contract SushiMasterChefLPStrategy is IStrategy, Controllable, RewardTokenProfit
   bool public sell = true;
   uint256 public sellFloor = 10e18;
 
-  // UniswapV2Router02 -- sushiswap deploy
+  // UniswapV2Router02
   // https://uniswap.org/docs/v2/smart-contracts/router02/
-  // https://etherscan.io/address/0xd9e1ce17f2641f24ae83637ab66a2cca9c378b9f
-  address public constant uniswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+  // https://etherscan.io/address/0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+  address public constant uniswapRouterV2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+
+  address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
 
   // masterchef rewards pool ID
   uint256 public poolID;
@@ -130,10 +132,15 @@ contract SushiMasterChefLPStrategy is IStrategy, Controllable, RewardTokenProfit
   }
 
   function exitRewardPool() internal {
-      rewardPool.withdraw(poolID, rewardPoolBalance());
+      uint256 bal = rewardPoolBalance();
+      if (bal != 0) {
+          rewardPool.withdraw(poolID, bal);
+      }
   }
 
   function enterRewardPool() internal {
+      underlying.approve(address(rewardPool), 0);
+      underlying.approve(address(rewardPool), underlying.balanceOf(address(this)));
       rewardPool.deposit(poolID, underlying.balanceOf(address(this)));
   }
 
@@ -184,23 +191,26 @@ contract SushiMasterChefLPStrategy is IStrategy, Controllable, RewardTokenProfit
       IERC20(rewardToken).safeApprove(uniswapRouterV2, 0);
       IERC20(rewardToken).safeApprove(uniswapRouterV2, remainingRewardBalance);
 
+      uint256 toToken0 = remainingRewardBalance / 2;
+      uint256 toToken1 = remainingRewardBalance.sub(toToken0);
+
+      // we sell to uni
+
       // sell Uni to token1
       // we can accept 1 as minimum because this is called only by a trusted role
-
       IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
-        remainingRewardBalance/2,
+        toToken0,
         amountOutMin,
-        uniswapRoutes[address(uniLPComponentToken0)],
+        uniswapRoutes[uniLPComponentToken0],
         address(this),
         block.timestamp
       );
       uint256 token0Amount = IERC20(uniLPComponentToken0).balanceOf(address(this));
+
       // sell Uni to token2
       // we can accept 1 as minimum because this is called only by a trusted role
-      remainingRewardBalance = IERC20(rewardToken).balanceOf(address(this));
-
       IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
-        remainingRewardBalance,
+        toToken1,
         amountOutMin,
         uniswapRoutes[uniLPComponentToken1],
         address(this),
@@ -208,22 +218,22 @@ contract SushiMasterChefLPStrategy is IStrategy, Controllable, RewardTokenProfit
       );
       uint256 token1Amount = IERC20(uniLPComponentToken1).balanceOf(address(this));
 
-      // provide token1 and token2 to UniLPToken
+      // provide token1 and token2 to SUSHI
+      IERC20(uniLPComponentToken0).safeApprove(sushiswapRouterV2, 0);
+      IERC20(uniLPComponentToken0).safeApprove(sushiswapRouterV2, token0Amount);
 
-      IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, 0);
-      IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, token0Amount);
+      IERC20(uniLPComponentToken1).safeApprove(sushiswapRouterV2, 0);
+      IERC20(uniLPComponentToken1).safeApprove(sushiswapRouterV2, token1Amount);
 
-      IERC20(uniLPComponentToken1).safeApprove(uniswapRouterV2, 0);
-      IERC20(uniLPComponentToken1).safeApprove(uniswapRouterV2, token1Amount);
-
+      // we provide liquidity to sushi
       uint256 liquidity;
-      (,,liquidity) = IUniswapV2Router02(uniswapRouterV2).addLiquidity(
+      (,,liquidity) = IUniswapV2Router02(sushiswapRouterV2).addLiquidity(
         uniLPComponentToken0,
         uniLPComponentToken1,
         token0Amount,
         token1Amount,
         1,  // we are willing to take whatever the pair gives us
-        1,
+        1,  // we are willing to take whatever the pair gives us
         address(this),
         block.timestamp
       );
@@ -237,7 +247,6 @@ contract SushiMasterChefLPStrategy is IStrategy, Controllable, RewardTokenProfit
     // this check is needed, because most of the SNX reward pools will revert if
     // you try to stake(0).
     if(underlying.balanceOf(address(this)) > 0) {
-      underlying.approve(address(rewardPool), underlying.balanceOf(address(this)));
       enterRewardPool();
     }
   }
@@ -306,7 +315,6 @@ contract SushiMasterChefLPStrategy is IStrategy, Controllable, RewardTokenProfit
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
     exitRewardPool();
-    enterRewardPool();
     _liquidateReward();
     investAllUnderlying();
   }
