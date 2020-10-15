@@ -34,10 +34,10 @@ FARM token: <br />
 
 | Vault    |      Lock Token      |  You Receive Instead | Vault Contract Address |
 |-----------|:----------------------|:--------------|:--------------:|
-| WETH-DAI-LP Vault | UNI-V2 | fUNI-V2 | [0x1a9F22b4C385f78650E7874d64e442839Dc32327](https://etherscan.io/address/0x1a9F22b4C385f78650E7874d64e442839Dc32327)|
-| WETH-USDC-LP Vault | UNI-V2 | fUNI-V2 | [0x63671425ef4D25Ec2b12C7d05DE855C143f16e3B](https://etherscan.io/address/0x63671425ef4D25Ec2b12C7d05DE855C143f16e3B) |
-| WETH-USDT-LP Vault | UNI-V2 | fUNI-V2 | [0xB19EbFB37A936cCe783142955D39Ca70Aa29D43c](https://etherscan.io/address/0xB19EbFB37A936cCe783142955D39Ca70Aa29D43c)|
-| WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE](https://etherscan.io/address/0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE)|
+| WETH-DAI-LP Vault | UNI-V2 | fUNI-V2 | [0x307E2752e8b8a9C29005001Be66B1c012CA9CDB7](https://etherscan.io/address/0x307E2752e8b8a9C29005001Be66B1c012CA9CDB7)|
+| WETH-USDC-LP Vault | UNI-V2 | fUNI-V2 | [0xA79a083FDD87F73c2f983c5551EC974685D6bb36](https://etherscan.io/address/0xA79a083FDD87F73c2f983c5551EC974685D6bb36) |
+| WETH-USDT-LP Vault | UNI-V2 | fUNI-V2 | [0x7DDc3ffF0612E75Ea5ddC0d6Bd4e268f70362Cff](https://etherscan.io/address/0x7DDc3ffF0612E75Ea5ddC0d6Bd4e268f70362Cff)|
+| WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0x01112a60f427205dcA6E229425306923c3Cc2073](https://etherscan.io/address/0x01112a60f427205dcA6E229425306923c3Cc2073)|
 | WETH | WETH | fWETH | [0x8e298734681adbfc41ee5d17ff8b0d6d803e7098](https://etherscan.io/address/0x8e298734681adbfc41ee5d17ff8b0d6d803e7098) |
 | DAI Vault | DAI | fDAI | [0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac](https://etherscan.io/address/0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac) |
 | USDC Vault | USDC | fUSDC| [0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f](https://etherscan.io/address/0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f) |
