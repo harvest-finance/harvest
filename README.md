@@ -32,12 +32,10 @@ with the smart contracts should be avoided by farmers who are not experienced in
 FARM token: <br />
 [0xa0246c9032bC3A600820415aE600c6388619A14D](https://etherscan.io/address/0xa0246c9032bC3A600820415aE600c6388619A14D)
 
+###Vaults:
+
 | Vault    |      Lock Token      |  You Receive Instead | Vault Contract Address |
 |-----------|:----------------------|:--------------|:--------------:|
-| WETH-DAI-LP Vault | UNI-V2 | fUNI-V2 | [0x307E2752e8b8a9C29005001Be66B1c012CA9CDB7](https://etherscan.io/address/0x307E2752e8b8a9C29005001Be66B1c012CA9CDB7)|
-| WETH-USDC-LP Vault | UNI-V2 | fUNI-V2 | [0xA79a083FDD87F73c2f983c5551EC974685D6bb36](https://etherscan.io/address/0xA79a083FDD87F73c2f983c5551EC974685D6bb36) |
-| WETH-USDT-LP Vault | UNI-V2 | fUNI-V2 | [0x7DDc3ffF0612E75Ea5ddC0d6Bd4e268f70362Cff](https://etherscan.io/address/0x7DDc3ffF0612E75Ea5ddC0d6Bd4e268f70362Cff)|
-| WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0x01112a60f427205dcA6E229425306923c3Cc2073](https://etherscan.io/address/0x01112a60f427205dcA6E229425306923c3Cc2073)|
 | WETH | WETH | fWETH | [0x8e298734681adbfc41ee5d17ff8b0d6d803e7098](https://etherscan.io/address/0x8e298734681adbfc41ee5d17ff8b0d6d803e7098) |
 | DAI Vault | DAI | fDAI | [0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac](https://etherscan.io/address/0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac) |
 | USDC Vault | USDC | fUSDC| [0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f](https://etherscan.io/address/0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f) |
@@ -46,10 +44,17 @@ FARM token: <br />
 | WBTC Vault | WBTC | fWBTC | [0xc07eb91961662d275e2d285bdc21885a4db136b0](https://etherscan.io/address/0xc07eb91961662d275e2d285bdc21885a4db136b0) |
 | RENBTC Vault | RENBTC | fRENBTC | [0xfbe122d0ba3c75e1f7c80bd27613c9f35b81feec](https://etherscan.io/address/0xfbe122d0ba3c75e1f7c80bd27613c9f35b81feec) |
 | CRVRENBTC Vault | CRVRENBTC | fCRVRENBTC | [0x192e9d29d43db385063799bc239e772c3b6888f3](https://etherscan.io/address/0x192e9d29d43db385063799bc239e772c3b6888f3) |
+| WETH-DAI-LP Vault | UNI-V2 | fUNI-V2 | [0x307E2752e8b8a9C29005001Be66B1c012CA9CDB7](https://etherscan.io/address/0x307E2752e8b8a9C29005001Be66B1c012CA9CDB7) |
+| WETH-USDC-LP Vault | UNI-V2 | fUNI-V2 | [0xA79a083FDD87F73c2f983c5551EC974685D6bb36](https://etherscan.io/address/0xA79a083FDD87F73c2f983c5551EC974685D6bb36) |
+| WETH-USDT-LP Vault | UNI-V2 | fUNI-V2 | [0x7DDc3ffF0612E75Ea5ddC0d6Bd4e268f70362Cff](https://etherscan.io/address/0x7DDc3ffF0612E75Ea5ddC0d6Bd4e268f70362Cff) |
+| WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0x01112a60f427205dcA6E229425306923c3Cc2073](https://etherscan.io/address/0x01112a60f427205dcA6E229425306923c3Cc2073) |
+| WBTC-TBTC Vault | SLP | fSLP | [0xF553E1f826f42716cDFe02bde5ee76b2a52fc7EB](https://etherscan.io/address/0xF553E1f826f42716cDFe02bde5ee76b2a52fc7EB) |
 
+###Staking Contracts:
 
 | Pool    |      Stake Token      |  Reward Token | Reward Pool Contract Link |
 |-----------|:----------------------|--------------:|:----------------:|
+| Profit Sharing | FARM | FARM | [0x25550Cccbd68533Fa04bFD3e3AC4D09f9e00Fc50](https://etherscan.io/address/0x25550Cccbd68533Fa04bFD3e3AC4D09f9e00Fc50#code) |
 | DAI Pool  | fDAI | FARM | [0xF9E5f9024c2f3f2908A1d0e7272861a767C9484b](https://etherscan.io/address/0xF9E5f9024c2f3f2908A1d0e7272861a767C9484b) |
 | USDC Pool | fUSDC | FARM | [0xE1f9A3EE001a2EcC906E8de637DBf20BB2d44633](https://etherscan.io/address/0xE1f9A3EE001a2EcC906E8de637DBf20BB2d44633) |
 | USDT Pool | fUSDT | FARM | [0x5bd997039FFF16F653EF15D1428F2C791519f58d](https://etherscan.io/address/0x5bd997039FFF16F653EF15D1428F2C791519f58d) |
@@ -57,21 +62,29 @@ FARM token: <br />
 | WBTC Pool | fWBTC | FARM | [0x6291eCe696CB6682a9bb1d42fca4160771b1D7CC](https://etherscan.io/address/0x6291eCe696CB6682a9bb1d42fca4160771b1D7CC) |
 | RENBTC Pool | fRENBTC | FARM | [0xCFE1103863F9e7Cf3452Ca8932Eef44d314bf9C5](https://etherscan.io/address/0xCFE1103863F9e7Cf3452Ca8932Eef44d314bf9C5) |
 | CRVRENWBTC Pool | fCRVRENWBTC | FARM | [0x5365A2C47b90EE8C9317faC20edC3ce7037384FB](https://etherscan.io/address/0x5365A2C47b90EE8C9317faC20edC3ce7037384FB) |
-| Profit Sharing | FARM | FARM | [0x25550Cccbd68533Fa04bFD3e3AC4D09f9e00Fc50](https://etherscan.io/address/0x25550Cccbd68533Fa04bFD3e3AC4D09f9e00Fc50#code) |
+| WBTC-TBTC Vault | fSLP | FARM | [0x9523FdC055F503F73FF40D7F66850F409D80EF34](https://etherscan.io/address/0x9523FdC055F503F73FF40D7F66850F409D80EF34) |
+| WETH-DAI-LP Vault | fUNI-V2 | FARM | [0x7aeb36e22e60397098C2a5C51f0A5fB06e7b859c](https://etherscan.io/address/0x7aeb36e22e60397098C2a5C51f0A5fB06e7b859c) |
+| WETH-USDC-LP Vault | fUNI-V2 | FARM | [0x156733b89Ac5C704F3217FEe2949A9D4A73764b5](https://etherscan.io/address/0x156733b89Ac5C704F3217FEe2949A9D4A73764b5) |
+| WETH-USDT-LP Vault | fUNI-V2 | FARM | [0x75071F2653fBC902EBaff908d4c68712a5d1C960](https://etherscan.io/address/0x75071F2653fBC902EBaff908d4c68712a5d1C960) |
+| WETH-WBTC-LP Vault | fUNI-V2 | FARM | [0xF1181A71CC331958AE2cA2aAD0784Acfc436CB93](https://etherscan.io/address/0xF1181A71CC331958AE2cA2aAD0784Acfc436CB93) |
 
 
 | LP Token Pool    |      Stake Token      |  Reward Token | Reward Pool Contract Link |
 |-----------|:----------------------|--------------:|:----------------:|
 | FARM - USDC Uniswap | [FARM/USDC UNI-v2](https://uniswap.info/pair/0x514906fc121c7878424a5c928cad1852cc545892) | FARM | [0x99b0d6641A63Ce173E6EB063b3d3AED9A35Cf9bf](https://etherscan.io/address/0x99b0d6641A63Ce173E6EB063b3d3AED9A35Cf9bf) |
+
+
+
+### Expiring pools from previous weeks
+
+These pools will not receive any new rewards.
+
+| LP Token Pool    |      Stake Token      |  Reward Token | Reward Pool Contract Link |
+|-----------|:----------------------|--------------:|:----------------:|
 | FARM - USDC 20/80 Balancer | [FARM/USDC BPT](https://pools.balancer.exchange/#/pool/0x0126cfa7ec6b6d4a960b5979943c06a9742af55e/) | FARM | [0x346523a81f16030110e6C858Ee0E11F156840BD1](https://etherscan.io/address/0x346523a81f16030110e6C858Ee0E11F156840BD1) |
 | fDAI Uniswap | [DAI/fDAI UNI-v2](https://uniswap.info/pair/0x007E383BF3c3Ffa12A5De06a53BAb103335eFF28) | FARM | [0xB492fAEdA6c9FFb9B9854a58F28d5333Ff7a11bc](https://etherscan.io/address/0xB492fAEdA6c9FFb9B9854a58F28d5333Ff7a11bc) |
 | fUSDC Uniswap | [USDC/fUSDC UNI-v2](https://uniswap.info/pair/0x4161Fa43eaA1Ac3882aeeD12C5FC05249e533e67) | FARM | [0x43286F57cf5981a5db56828dF91a46CfAb983E58](https://etherscan.io/address/0x43286F57cf5981a5db56828dF91a46CfAb983E58) |
 | fUSDT  Uniswap | [USDT/fUSDT UNI-v2](https://uniswap.info/pair/0x713f62ccf8545Ff1Df19E5d7Ab94887cFaf95677) | FARM | [0x316De40F36da4C54AFf11C1D83081555Cca41270](https://etherscan.io/address/0x316De40F36da4C54AFf11C1D83081555Cca41270) |
-
-
-### Expiring pools from previous weeka
-
-These pools will not receive any new rewards.
 
 WETH Pool (accepts WETH, gives you FARM):<br />
 0xE604Fd5b1317BABd0cF2c72F7F5f2AD8c00Adbe1
