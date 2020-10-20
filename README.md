@@ -32,7 +32,7 @@ with the smart contracts should be avoided by farmers who are not experienced in
 FARM token: <br />
 [0xa0246c9032bC3A600820415aE600c6388619A14D](https://etherscan.io/address/0xa0246c9032bC3A600820415aE600c6388619A14D)
 
-###Vaults:
+### Vaults:
 
 | Vault    |      Lock Token      |  You Receive Instead | Vault Contract Address |
 |-----------|:----------------------|:--------------|:--------------:|
@@ -50,7 +50,7 @@ FARM token: <br />
 | WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0x01112a60f427205dcA6E229425306923c3Cc2073](https://etherscan.io/address/0x01112a60f427205dcA6E229425306923c3Cc2073) |
 | WBTC-TBTC Vault | SLP | fSLP | [0xF553E1f826f42716cDFe02bde5ee76b2a52fc7EB](https://etherscan.io/address/0xF553E1f826f42716cDFe02bde5ee76b2a52fc7EB) |
 
-###Staking Contracts:
+### Staking Contracts:
 
 | Pool    |      Stake Token      |  Reward Token | Reward Pool Contract Link |
 |-----------|:----------------------|--------------:|:----------------:|
