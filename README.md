@@ -88,6 +88,10 @@ These are old vaults that no longer hold funds.
 | WBTC Vault | WBTC | fWBTC | [0xc07eb91961662d275e2d285bdc21885a4db136b0](https://etherscan.io/address/0xc07eb91961662d275e2d285bdc21885a4db136b0) |
 | RENBTC Vault | RENBTC | fRENBTC | [0xfbe122d0ba3c75e1f7c80bd27613c9f35b81feec](https://etherscan.io/address/0xfbe122d0ba3c75e1f7c80bd27613c9f35b81feec) |
 | CRVRENBTC Vault | CRVRENBTC | fCRVRENBTC | [0x192e9d29d43db385063799bc239e772c3b6888f3](https://etherscan.io/address/0x192e9d29d43db385063799bc239e772c3b6888f3) |
+| WETH-DAI-LP Vault | UNI-V2 | fUNI-V2 | [0x1a9F22b4C385f78650E7874d64e442839Dc32327](https://etherscan.io/address/0x1a9F22b4C385f78650E7874d64e442839Dc32327)|
+| WETH-USDC-LP Vault | UNI-V2 | fUNI-V2 | [0x63671425ef4D25Ec2b12C7d05DE855C143f16e3B](https://etherscan.io/address/0x63671425ef4D25Ec2b12C7d05DE855C143f16e3B) |
+| WETH-USDT-LP Vault | UNI-V2 | fUNI-V2 | [0xB19EbFB37A936cCe783142955D39Ca70Aa29D43c](https://etherscan.io/address/0xB19EbFB37A936cCe783142955D39Ca70Aa29D43c)|
+| WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE](https://etherscan.io/address/0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE)|
 
 These pools will not receive any new rewards.
 
