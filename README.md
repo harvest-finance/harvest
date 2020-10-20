@@ -79,6 +79,8 @@ FARM token: <br />
 ### Expiring pools from previous weeks
 
 These are old vaults that no longer hold funds.
+| Vault    |      Lock Token      |  You Receive Instead | Vault Contract Address |
+|-----------|:----------------------|:--------------|:--------------:|
 | WETH | WETH | fWETH | [0x8e298734681adbfc41ee5d17ff8b0d6d803e7098](https://etherscan.io/address/0x8e298734681adbfc41ee5d17ff8b0d6d803e7098) |
 | DAI Vault | DAI | fDAI | [0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac](https://etherscan.io/address/0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac) |
 | USDC Vault | USDC | fUSDC| [0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f](https://etherscan.io/address/0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f) |
