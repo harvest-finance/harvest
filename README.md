@@ -79,6 +79,7 @@ FARM token: <br />
 ### Expiring pools from previous weeks
 
 These are old vaults that no longer hold funds.
+
 | Vault    |      Lock Token      |  You Receive Instead | Vault Contract Address |
 |-----------|:----------------------|:--------------|:--------------:|
 | WETH | WETH | fWETH | [0x8e298734681adbfc41ee5d17ff8b0d6d803e7098](https://etherscan.io/address/0x8e298734681adbfc41ee5d17ff8b0d6d803e7098) |
@@ -94,6 +95,7 @@ These are old vaults that no longer hold funds.
 | WETH-WBTC-LP Vault | UNI-V2 | fUNI-V2 | [0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE](https://etherscan.io/address/0xb1FeB6ab4EF7d0f41363Da33868e85EB0f3A57EE)|
 
 These pools will not receive any new rewards.
+
 
 | LP Token Pool    |      Stake Token      |  Reward Token | Reward Pool Contract Link |
 |-----------|:----------------------|--------------:|:----------------:|
