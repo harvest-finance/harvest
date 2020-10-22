@@ -15,6 +15,8 @@ contract CRVStrategyStableMainnet is CRVStrategyStable {
   address constant public yusdc = address(0xd6aD7a6750A7593E092a9B218d66C0A814a3436e);
   address constant public usdt = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
   address constant public yusdt = address(0x83f798e925BcD4017Eb265844FDDAbb448f1707D);
+  address constant public tusd = address(0x0000000000085d4780B73119b644AE5ecd22b376);
+  address constant public ytusd = address(0x73a052500105205d34Daf004eAb301916DA8190f);
 
   // pre-defined constant mapping: underlying -> y-token
   mapping(address => address) public yVaults;
@@ -40,6 +42,7 @@ contract CRVStrategyStableMainnet is CRVStrategyStable {
     yVaults[dai] = ydai;
     yVaults[usdc] = yusdc;
     yVaults[usdt] = yusdt;
+    yVaults[tusd] = ytusd; 
     yVault = yVaults[underlying];
     require(yVault != address(0), "underlying not supported: yVault is not defined");
     if (_underlying == dai) {
@@ -48,6 +51,8 @@ contract CRVStrategyStableMainnet is CRVStrategyStable {
       tokenIndex = TokenIndex.USDC;
     } else if (_underlying == usdt) {
       tokenIndex = TokenIndex.USDT;
+    } else if (_underlying == tusd) {
+      tokenIndex = TokenIndex.TUSD;
     } else {
       revert("What is this asset?");
     }

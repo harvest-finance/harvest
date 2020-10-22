@@ -20,7 +20,7 @@ contract RewardTokenProfitNotifier is Controllable {
   ) public Controllable(_storage){
     rewardToken = _rewardToken;
     // persist in the state for immutability of the fee
-    profitSharingNumerator = 5; //IController(controller()).profitSharingNumerator();
+    profitSharingNumerator = 30; //IController(controller()).profitSharingNumerator();
     profitSharingDenominator = 100; //IController(controller()).profitSharingDenominator();
     require(profitSharingNumerator < profitSharingDenominator, "invalid profit share");
   }

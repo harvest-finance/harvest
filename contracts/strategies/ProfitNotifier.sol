@@ -27,8 +27,8 @@ contract ProfitNotifier is Controllable {
   ) public Controllable(_storage){
     underlying = _underlying;
     // persist in the state for immutability of the fee
-    profitSharingNumerator = IController(controller()).profitSharingNumerator();
-    profitSharingDenominator = IController(controller()).profitSharingDenominator();
+    profitSharingNumerator = 30; //IController(controller()).profitSharingNumerator();
+    profitSharingDenominator = 100; //IController(controller()).profitSharingDenominator();
     require(profitSharingNumerator < profitSharingDenominator, "invalid profit share");
   }
 

@@ -50,7 +50,8 @@ function assertApproxBNEq(a, b, c){
 function assertBNGt(a, b){
   let _a = new BigNumber(a);
   let _b = new BigNumber(b);
-  assert.equal(_a.gt(_b), true);
+  let msg = _a.toFixed() + " is not greater than " + _b.toFixed();
+  assert.equal(_a.gt(_b), true, msg);
 }
 
 function assertNEqBN(a, b){

@@ -46,7 +46,7 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     );
 
     uint256 underlyingUnit = 10 ** uint256(ERC20Detailed(address(_underlying)).decimals());
-    uint256 implementationDelay = 48 hours;
+    uint256 implementationDelay = 12 hours;
     uint256 strategyChangeDelay = 12 hours;
     VaultStorage.initialize(
       _underlying,

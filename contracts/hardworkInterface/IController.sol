@@ -11,7 +11,7 @@ interface IController {
     // to interact with the whole system as if nothing happened.
     // Only smart contracts will be affected by being added to the greyList.
     // This grey list is only used in Vault.sol, see the code there for reference
-    function greyList(address _target) external returns(bool);
+    function greyList(address _target) external view returns(bool);
 
     function addVaultAndStrategy(address _vault, address _strategy) external;
     function doHardWork(address _vault) external;

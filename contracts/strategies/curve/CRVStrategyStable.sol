@@ -25,7 +25,7 @@ import "../../Controllable.sol";
 */
 contract CRVStrategyStable is IStrategy, Controllable {
 
-  enum TokenIndex {DAI, USDC, USDT}
+  enum TokenIndex {DAI, USDC, USDT, TUSD}
 
   using SafeERC20 for IERC20;
   using Address for address;
@@ -62,6 +62,8 @@ contract CRVStrategyStable is IStrategy, Controllable {
   uint256 public ycrvUnit;
   uint256 public arbTolerance = 3;
 
+  bool public investActivated;
+
   modifier restricted() {
     require(msg.sender == vault || msg.sender == controller()
       || msg.sender == governance(),
@@ -95,6 +97,8 @@ contract CRVStrategyStable is IStrategy, Controllable {
     unsalvagableTokens[yVault] = true;
     unsalvagableTokens[ycrv] = true;
     unsalvagableTokens[ycrvVault] = true;
+
+    investActivated = true;
 
     ycrvUnit = 10 ** 18;
     // starting with a stable price, the mainnet will override this value
@@ -175,6 +179,20 @@ contract CRVStrategyStable is IStrategy, Controllable {
   }
 
   /**
+  * Allows Governance to withdraw partial shares to reduce slippage incurred 
+  *  and facilitate migration / withdrawal / strategy switch
+  */
+  function withdrawPartialYCRVShares(uint256 shares) external restricted {
+    IVault(ycrvVault).withdraw(shares);
+    yCurveToUnderlying(uint256(~0));
+  }
+
+
+  function setInvestActivated(bool _investActivated) external restricted {
+    investActivated = _investActivated;
+  }
+
+  /**
   * Withdraws an underlying asset from the strategy to the vault in the specified amount by asking
   * the yCRV vault for yCRV (currently all of it), and then removing imbalanced liquidity from
   * the Curve protocol. The rest is deposited back to the yCRV vault. If the amount requested cannot
@@ -182,6 +200,11 @@ contract CRVStrategyStable is IStrategy, Controllable {
   */
   function withdrawToVault(uint256 amountUnderlying) external restricted {
     // todo: If we want to be more accurate, we need to calculate how much yCRV we will need here
+    if(IERC20(underlying).balanceOf(address(this)) >= amountUnderlying){
+      IERC20(underlying).safeTransfer(vault, amountUnderlying);
+      return;
+    }
+
     uint256 shares = IERC20(ycrvVault).balanceOf(address(this));
     IVault(ycrvVault).withdraw(shares);
     yCurveToUnderlying(amountUnderlying);
@@ -214,6 +237,10 @@ contract CRVStrategyStable is IStrategy, Controllable {
   * Invests all underlying assets into our yCRV vault.
   */
   function investAllUnderlying() internal {
+    if(!investActivated) {
+      return;
+    }
+
     // convert the entire balance not yet invested into yCRV first
     yCurveFromUnderlying();
 

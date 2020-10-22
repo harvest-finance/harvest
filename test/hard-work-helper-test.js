@@ -94,6 +94,8 @@ contract("Hard Work Helper Test", function (accounts) {
       // set up the hard worker
       helper = await HardWorkHelper.new(storage.address, token.address);
       await helper.setVaults([vault.address], { from: governance });
+      // test resetting
+      await helper.setVaults([vault.address], { from: governance });
       await controller.addHardWorker(helper.address, { from: governance });
 
       assert.equal(await helper.getNumberOfVaults(), 1);

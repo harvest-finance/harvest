@@ -5,6 +5,7 @@ interface IVault {
     function underlyingBalanceInVault() external view returns (uint256);
     function underlyingBalanceWithInvestment() external view returns (uint256);
 
+    // function store() external view returns (address);
     function governance() external view returns (address);
     function controller() external view returns (address);
     function underlying() external view returns (address);

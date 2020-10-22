@@ -57,7 +57,7 @@ contract("NoMint reward pool Test", function (accounts) {
       assert.isTrue(await rewardToken.isMinter(delayMinter.address));
       await delayMinter.renounceMinting({ from: governance });
       assert.isFalse(await rewardToken.isMinter(delayMinter.address));
-      
+
       // Governance cannot restore itself as a minter
       await rewardToken.renounceMinter({ from: governance });
       await expectRevert(

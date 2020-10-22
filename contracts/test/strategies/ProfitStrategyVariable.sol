@@ -20,9 +20,9 @@ contract ProfitStrategyVariable is IStrategy, ProfitNotifier {
 
   IERC20 public underlying;
   IVault public vault;
-  uint256 accountedBalance;
   uint256 profitRateNumerator;
   uint256 profitRateDenominator;
+  uint256 variation = 0;
 
   // These tokens cannot be claimed by the controller
   mapping (address => bool) public unsalvagableTokens;
@@ -45,10 +45,6 @@ contract ProfitStrategyVariable is IStrategy, ProfitNotifier {
     _;
   }
 
-  function depositArbCheck() public view returns(bool) {
-    return true;
-  }
-
   /*
   * Returns the total invested amount.
   */
@@ -61,12 +57,17 @@ contract ProfitStrategyVariable is IStrategy, ProfitNotifier {
   * Invests all tokens that were accumulated so far
   */
   function investAllUnderlying() public {
-    uint256 contribution = underlying.balanceOf(address(this)).sub(accountedBalance);
-    // add 10% to this strategy
+    uint256 balance = underlying.balanceOf(address(this));
+
+    variation++;
+    if (variation > 4) {
+      variation = 0;
+    }
+    // add x% to this strategy
     // We assume that this contract is a minter on underlying
     ERC20Mintable(address(underlying)).mint(address(this),
-      contribution.mul(profitRateNumerator).div(profitRateDenominator));
-    accountedBalance = underlying.balanceOf(address(this));
+      balance.mul(profitRateNumerator + variation).div(profitRateDenominator));
+
   }
 
   /*
@@ -74,7 +75,6 @@ contract ProfitStrategyVariable is IStrategy, ProfitNotifier {
   */
   function withdrawAllToVault() external restricted {
     underlying.safeTransfer(address(vault), underlying.balanceOf(address(this)));
-    accountedBalance = underlying.balanceOf(address(this));
   }
 
   /*
@@ -82,7 +82,6 @@ contract ProfitStrategyVariable is IStrategy, ProfitNotifier {
   */
   function withdrawToVault(uint256 amount) external restricted {
     underlying.safeTransfer(address(vault), amount);
-    accountedBalance = underlying.balanceOf(address(this));
   }
 
   /*
@@ -95,5 +94,9 @@ contract ProfitStrategyVariable is IStrategy, ProfitNotifier {
   // should only be called by controller
   function salvage(address destination, address token, uint256 amount) external onlyController {
     IERC20(token).safeTransfer(destination, amount);
+  }
+
+  function depositArbCheck() public view returns(bool) {
+    return true;
   }
 }
