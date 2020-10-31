@@ -135,7 +135,7 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   /**
   * Invests all the underlying yCRV into the pool that mints crops (CRV_.
   */
-  function investAllUnderlying() public {
+  function investAllUnderlying() public restricted {
     uint256 underlyingBalance = IERC20(underlying).balanceOf(address(this));
     if (underlyingBalance > 0) {
       IERC20(underlying).safeApprove(pool, 0);
@@ -158,7 +158,6 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
       IERC20(crv).safeApprove(uni, 0);
       IERC20(crv).safeApprove(uni, crvBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
-      // todo: check if this can be 0
       IUniswapV2Router02(uni).swapExactTokensForTokens(
         crvBalance, 1, uniswap_CRV2DAI, address(this), block.timestamp
       );
@@ -194,7 +193,7 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   /**
   * Converts all DAI to yCRV using the CRV protocol.
   */
-  function yCurveFromDai() public {
+  function yCurveFromDai() internal {
     uint256 daiBalance = IERC20(dai).balanceOf(address(this));
     if (daiBalance > 0) {
       IERC20(dai).safeApprove(yDai, 0);
