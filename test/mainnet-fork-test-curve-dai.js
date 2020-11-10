@@ -16,9 +16,6 @@ if (process.env.MAINNET_FORK) {
   // ERC20 interface
   const IERC20 = artifacts.require("IERC20");
 
-  // UniswapV2 Router (can we ignore this or not?)
-  const UniswapV2Router02 = artifacts.require("UniswapV2Router02");
-
   BigNumber.config({ DECIMAL_PLACES: 0 });
 
   contract("Mainnet Curve", function (accounts) {
@@ -134,7 +131,6 @@ if (process.env.MAINNET_FORK) {
         await _underlying.approve(_vault.address, _amount, { from: _farmer });
         await _vault.deposit(_amount, { from: _farmer });
         assert.equal(_amount, await _vault.balanceOf(_farmer));
-        assert.equal(_amount, await _vault.getContributions(_farmer));
       }
 
       it("A farmer investing dai", async function () {

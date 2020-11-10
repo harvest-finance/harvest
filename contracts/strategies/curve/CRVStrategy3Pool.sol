@@ -6,29 +6,24 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./interfaces/Gauge.sol";
-import "./interfaces/ICurveFi.sol";
-import "./interfaces/yVault.sol";
+import "./interfaces/ICurve3Pool.sol";
 import "../../uniswap/interfaces/IUniswapV2Router02.sol";
 import "../../hardworkInterface/IStrategy.sol";
 import "../../hardworkInterface/IVault.sol";
 import "../../Controllable.sol";
-import "../ProfitNotifier.sol";
+import "../RewardTokenProfitNotifier.sol";
 
 
-/**
-* This strategy is for the yCRV vault, i.e., the underlying token is yCRV. It is not to accept
-* stable coins. It will farm the CRV crop. For liquidation, it swaps CRV into DAI and uses DAI
-* to produce yCRV.
-*/
-contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
+contract CRVStrategy3Pool is IStrategy, RewardTokenProfitNotifier {
 
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
 
   event Liquidating(uint256 amount);
+  event ProfitsNotCollected();
 
-  // yDAIyUSDCyUSDTyTUSD (yCRV)
+  // 3CRV
   address public underlying;
   address public pool;
   address public mintr;
@@ -37,18 +32,21 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   address public curve;
   address public weth;
   address public dai;
-  address public yDai;
 
-  address public uni = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+  address public uni;
 
   // these tokens cannot be claimed by the governance
   mapping(address => bool) public unsalvagableTokens;
 
-  // our vault holding the underlying token (yCRV)
   address public vault;
 
   uint256 maxUint = uint256(~0);
   address[] public uniswap_CRV2DAI;
+
+  // a flag for disabling selling for simplified emergency exit
+  bool public sell = true;
+  // minimum CRV amount to be liquidation
+  uint256 public sellFloor = 1e18;
 
   modifier restricted() {
     require(msg.sender == vault || msg.sender == controller()
@@ -67,11 +65,10 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
     address _curve,
     address _weth,
     address _dai,
-    address _yDai,
     address _uniswap
   )
-  ProfitNotifier(_storage, _dai) public {
-    require(IVault(_vault).underlying() == _underlying, "vault does not support yCRV");
+  RewardTokenProfitNotifier(_storage, _crv) public {
+    require(IVault(_vault).underlying() == _underlying, "vault does not support 3crv");
     vault = _vault;
     underlying = _underlying;
     pool = _gauge;
@@ -80,7 +77,6 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
     curve = _curve;
     weth = _weth;
     dai = _dai;
-    yDai = _yDai;
     uni = _uniswap;
     uniswap_CRV2DAI = [crv, weth, dai];
     // set these tokens to be not salvageable
@@ -93,7 +89,7 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   }
 
   /**
-  * Salvages a token. We should not be able to salvage CRV and yCRV (underlying).
+  * Salvages a token. We should not be able to salvage CRV and 3CRV (underlying).
   */
   function salvage(address recipient, address token, uint256 amount) public onlyGovernance {
     // To make sure that governance cannot come in and take away the coins
@@ -102,19 +98,19 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   }
 
   /**
-  * Withdraws yCRV from the investment pool that mints crops.
+  * Withdraws 3CRV from the investment pool that mints crops.
   */
-  function withdrawYCrvFromPool(uint256 amount) internal {
+  function withdraw3CrvFromPool(uint256 amount) internal {
     Gauge(pool).withdraw(
       Math.min(Gauge(pool).balanceOf(address(this)), amount)
     );
   }
 
   /**
-  * Withdraws the yCRV tokens to the pool in the specified amount.
+  * Withdraws the 3CRV tokens to the pool in the specified amount.
   */
   function withdrawToVault(uint256 amountUnderlying) external restricted {
-    withdrawYCrvFromPool(amountUnderlying);
+    withdraw3CrvFromPool(amountUnderlying);
     if (IERC20(underlying).balanceOf(address(this)) < amountUnderlying) {
       claimAndLiquidateCrv();
     }
@@ -123,17 +119,17 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   }
 
   /**
-  * Withdraws all the yCRV tokens to the pool.
+  * Withdraws all the 3CRV tokens to the pool.
   */
   function withdrawAllToVault() external restricted {
     claimAndLiquidateCrv();
-    withdrawYCrvFromPool(maxUint);
+    withdraw3CrvFromPool(maxUint);
     uint256 balance = IERC20(underlying).balanceOf(address(this));
     IERC20(underlying).safeTransfer(vault, balance);
   }
 
   /**
-  * Invests all the underlying yCRV into the pool that mints crops (CRV_.
+  * Invests all the underlying 3CRV into the pool that mints crops (CRV).
   */
   function investAllUnderlying() public restricted {
     uint256 underlyingBalance = IERC20(underlying).balanceOf(address(this));
@@ -145,36 +141,44 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   }
 
   /**
-  * Claims the CRV crop, converts it to DAI on Uniswap, and then uses DAI to mint yCRV using the
+  * Claims the CRV crop, converts it to DAI on Uniswap, and then uses DAI to mint 3CRV using the
   * Curve protocol.
   */
   function claimAndLiquidateCrv() internal {
+    if (!sell) {
+      // Profits can be disabled for possible simplified and rapid exit
+      emit ProfitsNotCollected();
+      return;
+    }
     Mintr(mintr).mint(pool);
-    // claiming rewards and sending them to the master strategy
+
+    uint256 rewardBalance = IERC20(crv).balanceOf(address(this));
+    if (rewardBalance < sellFloor) {
+      // Profits can be disabled for possible simplified and rapid exit
+      emit ProfitsNotCollected();
+      return;
+    }
+
+    notifyProfitInRewardToken(rewardBalance);
     uint256 crvBalance = IERC20(crv).balanceOf(address(this));
-    emit Liquidating(crvBalance);
+
     if (crvBalance > 0) {
-      uint256 daiBalanceBefore = IERC20(dai).balanceOf(address(this));
+      emit Liquidating(crvBalance);
       IERC20(crv).safeApprove(uni, 0);
       IERC20(crv).safeApprove(uni, crvBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
       IUniswapV2Router02(uni).swapExactTokensForTokens(
         crvBalance, 1, uniswap_CRV2DAI, address(this), block.timestamp
       );
-      // now we have DAI
-      // pay fee before making yCRV
-      notifyProfit(daiBalanceBefore, IERC20(dai).balanceOf(address(this)));
 
-      // liquidate if there is any DAI left
       if(IERC20(dai).balanceOf(address(this)) > 0) {
-        yCurveFromDai();
+        curve3PoolFromDai();
       }
-      // now we have yCRV
     }
   }
 
   /**
-  * Claims and liquidates CRV into yCRV, and then invests all underlying.
+  * Claims and liquidates CRV into 3CRV, and then invests all underlying.
   */
   function doHardWork() public restricted {
     claimAndLiquidateCrv();
@@ -191,23 +195,30 @@ contract CRVStrategyYCRV is IStrategy, ProfitNotifier {
   }
 
   /**
-  * Converts all DAI to yCRV using the CRV protocol.
+  * Uses the Curve protocol to convert the underlying asset into the mixed token.
   */
-  function yCurveFromDai() internal {
+  function curve3PoolFromDai() public {
     uint256 daiBalance = IERC20(dai).balanceOf(address(this));
     if (daiBalance > 0) {
-      IERC20(dai).safeApprove(yDai, 0);
-      IERC20(dai).safeApprove(yDai, daiBalance);
-      yERC20(yDai).deposit(daiBalance);
-    }
-    uint256 yDaiBalance = IERC20(yDai).balanceOf(address(this));
-    if (yDaiBalance > 0) {
-      IERC20(yDai).safeApprove(curve, 0);
-      IERC20(yDai).safeApprove(curve, yDaiBalance);
-      // we can accept 0 as minimum, this will be called only by trusted roles
+      IERC20(dai).safeApprove(curve, 0);
+      IERC20(dai).safeApprove(curve, daiBalance);
       uint256 minimum = 0;
-      ICurveFi(curve).add_liquidity([yDaiBalance, 0, 0, 0], minimum);
+      ICurve3Pool(curve).add_liquidity([daiBalance, 0, 0], minimum);
     }
-    // now we have yCRV
+  }
+
+  /**
+  * Can completely disable claiming CRV rewards and selling. Good for emergency withdraw in the
+  * simplest possible way.
+  */
+  function setSell(bool s) public onlyGovernance {
+    sell = s;
+  }
+
+  /**
+  * Sets the minimum amount of CRV needed to trigger a sale.
+  */
+  function setSellFloor(uint256 floor) public onlyGovernance {
+    sellFloor = floor;
   }
 }

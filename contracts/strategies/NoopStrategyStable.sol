@@ -4,12 +4,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../../hardworkInterface/IStrategy.sol";
-import "../../Controllable.sol";
-import "../../hardworkInterface/IVault.sol";
+import "../hardworkInterface/IStrategy.sol";
+import "../Controllable.sol";
+import "../hardworkInterface/IVault.sol";
 
 
-contract NoopStrategy is IStrategy, Controllable {
+contract NoopStrategyStable is IStrategy, Controllable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -20,12 +20,18 @@ contract NoopStrategy is IStrategy, Controllable {
   // These tokens cannot be claimed by the controller
   mapping(address => bool) public unsalvagableTokens;
 
-  constructor(address _storage, address _underlying, address _vault) public
+  constructor(address _storage, address _vault) public
   Controllable(_storage) {
-    require(_underlying != address(0), "_underlying cannot be empty");
     require(_vault != address(0), "_vault cannot be empty");
-    underlying = IERC20(_underlying);
     vault = IVault(_vault);
+    underlying = IERC20(vault.underlying());
+    unsalvagableTokens[address(underlying)] = true;
+  }
+
+  modifier restricted() {
+    require(msg.sender == address(vault) || msg.sender == address(controller()) || msg.sender == address(governance()),
+      "The sender has to be the controller or vault or governance");
+    _;
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -55,7 +61,7 @@ contract NoopStrategy is IStrategy, Controllable {
   /*
   * Cashes everything out and withdraws to the vault
   */
-  function withdrawAllToVault() external onlyVault {
+  function withdrawAllToVault() external restricted {
     if (underlying.balanceOf(address(this)) > 0) {
       underlying.safeTransfer(address(vault), underlying.balanceOf(address(this)));
     }
@@ -64,7 +70,7 @@ contract NoopStrategy is IStrategy, Controllable {
   /*
   * Cashes some amount out and withdraws to the vault
   */
-  function withdrawToVault(uint256 amount) external onlyVault {
+  function withdrawToVault(uint256 amount) external restricted {
     if (amount > 0) {
       underlying.safeTransfer(address(vault), amount);
     }
@@ -73,12 +79,13 @@ contract NoopStrategy is IStrategy, Controllable {
   /*
   * Honest harvesting. It's not much, but it pays off
   */
-  function doHardWork() external onlyVault {
+  function doHardWork() external restricted {
     // a no-op
   }
 
   // should only be called by controller
-  function salvage(address destination, address token, uint256 amount) external onlyController {
+  function salvage(address destination, address token, uint256 amount) external restricted {
+    require(!unsalvagableTokens[token], "token is defined as not salvageable");
     IERC20(token).safeTransfer(destination, amount);
   }
 }
