@@ -8,7 +8,7 @@ import "./CompoundInteractor.sol";
 import "./CompleteCToken.sol";
 import "../LiquidityRecipient.sol";
 import "../../Controllable.sol";
-import "../ProfitNotifier.sol";
+import "../RewardTokenProfitNotifier.sol";
 import "../../compound/ComptrollerInterface.sol";
 import "../../compound/CTokenInterfaces.sol";
 import "../../hardworkInterface/IStrategy.sol";
@@ -18,10 +18,13 @@ import "../../uniswap/interfaces/IUniswapV2Router02.sol";
 // (2) WETH has its own special strategy because its liquidation path would not
 //     use WETH as intermediate asset for obvious reason.
 
-contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteractor {
+contract WETHCreamNoFoldStrategy is IStrategy, RewardTokenProfitNotifier, CompoundInteractor {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
+
+  event ProfitNotClaimed();
+  event TooLowBalance();
 
   ERC20Detailed public underlying;
   CompleteCToken public ctoken;
@@ -39,6 +42,11 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
   uint256 public liquidityLoanCurrent;
   // The target loan
   uint256 public liquidityLoanTarget;
+
+  bool public liquidationAllowed = true;
+  uint256 public sellFloor = 0;
+  bool public allowEmergencyLiquidityShortage = false;
+
 
   uint256 public constant tenWeth = 10 * 1e18;
 
@@ -60,11 +68,10 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
     address _comp,
     address _uniswap
   )
-  ProfitNotifier(_storage, _underlying)
+  RewardTokenProfitNotifier(_storage, _comp)
   CompoundInteractor(_underlying, _ctoken, _comptroller) public {
     require(_underlying == address(_weth), "Weth strategy needs to have WETH as underlying");
     comptroller = ComptrollerInterface(_comptroller);
-    // CREAM: 0x2ba592F78dB6436527729929AAf6c908497cB200
     comp = ERC20Detailed(_comp);
     underlying = ERC20Detailed(_underlying);
     ctoken = CompleteCToken(_ctoken);
@@ -103,15 +110,44 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
     // This function allows for withdrawing tokens without the loan being settled for the sake
     // of being able to switch strategies whenever needed. Only last shareholder can suffer from
     // this as withdrawToVault is used in other cases.
-    withdrawAll();
+    _withdrawAll();
     IERC20(address(underlying)).safeTransfer(vault, underlying.balanceOf(address(this)));
   }
 
+  function emergencyExit() external onlyGovernance updateSupplyInTheEnd {
+    withdrawMaximum();
+  }
+
   function withdrawAll() public onlyGovernance {
+    _withdrawAll();
+  }
+
+  function _withdrawAll() internal {
     claimComp();
     liquidateComp();
     redeemMaximum();
   }
+
+  function withdrawMaximum() internal updateSupplyInTheEnd {
+    if (liquidationAllowed) {
+      claimComp();
+      liquidateComp();
+    } else {
+      emit ProfitNotClaimed();
+    }
+    redeemMaximum();
+  }
+
+  function withdrawAllWeInvested() internal updateSupplyInTheEnd {
+    if (liquidationAllowed) {
+      claimComp();
+      liquidateComp();
+    } else {
+      emit ProfitNotClaimed();
+    }
+    uint256 currentBalance = ctoken.balanceOfUnderlying(address(this));
+    mustRedeemPartial(currentBalance);
+  }  
 
   function withdrawToVault(uint256 amountUnderlying) external restricted updateSupplyInTheEnd {
     if (amountUnderlying <= underlying.balanceOf(address(this))) {
@@ -132,14 +168,8 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
       require(liquidityLoanCurrent == 0, "The loan has to be settled first");
     }
 
-    // Cannot give more than what we have
-    uint256 transferBalance = Math.min(
-      amountUnderlying,
-      underlying.balanceOf(address(this))
-    );
-
     // transfer the amount requested (or the amount we have) back to vault
-    IERC20(address(underlying)).safeTransfer(vault, transferBalance);
+    IERC20(address(underlying)).safeTransfer(vault, amountUnderlying);
 
     // invest back to cream
     investAllUnderlying();
@@ -149,8 +179,12 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
   * Withdraws all assets, liquidates COMP, and invests again in the required ratio.
   */
   function doHardWork() public restricted {
-    claimComp();
-    liquidateComp();
+    if (liquidationAllowed) {
+      claimComp();
+      liquidateComp();
+    } else {
+      emit ProfitNotClaimed();
+    }
     investAllUnderlying();
   }
 
@@ -186,9 +220,17 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
   }
 
   function liquidateComp() internal {
-    uint256 oldBalance = underlying.balanceOf(address(this));
     uint256 balance = comp.balanceOf(address(this));
+
+    if (balance < sellFloor) {
+      emit TooLowBalance();
+      return;
+    }
+
     if (balance > 0) {
+      notifyProfitInRewardToken(balance);
+
+      balance = comp.balanceOf(address(this));
       // we can accept 1 as minimum as this will be called by trusted roles only
       uint256 amountOutMin = 1;
       IERC20(address(comp)).safeApprove(address(uniswapRouterV2), 0);
@@ -204,12 +246,6 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
         block.timestamp
       );
     }
-
-    // give a profit share to fee forwarder, which re-distributes this to
-    // the profit sharing pools
-    notifyProfit(
-      oldBalance, underlying.balanceOf(address(this))
-    );
   }
 
   /**
@@ -221,6 +257,25 @@ contract WETHCreamNoFoldStrategy is IStrategy, ProfitNotifier, CompoundInteracto
     // adding the liquidity that is loaned
     return assets.add(liquidityLoanCurrent);
   }
+
+  /**
+  * Allows liquidation
+  */
+  function setLiquidationAllowed(
+    bool allowed
+  ) external restricted {
+    liquidationAllowed = allowed;
+  }
+
+  function setAllowLiquidityShortage(
+    bool allowed
+  ) external restricted {
+    allowEmergencyLiquidityShortage = allowed;
+  }
+
+  function setSellFloor(uint256 value) external restricted {
+    sellFloor = value;
+  }  
 
   /**
   * Provides a loan to the liquidity strategy. Sends in funds to fill out the loan target amount,

@@ -6,19 +6,18 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "./interfaces/Gauge.sol";
-import "./interfaces/ICurveFiWbtc.sol";
-import "./interfaces/yVault.sol";
-import "./interfaces/IPriceConvertor.sol";
-import "../ProfitNotifier.sol";
+import "../../strategies/curve/interfaces/Gauge.sol";
+import "../../strategies/curve/interfaces/ICurveFiWbtc.sol";
+import "../../strategies/curve/interfaces/yVault.sol";
+import "../../strategies/RewardTokenProfitNotifier.sol";
 import "../../hardworkInterface/IVault.sol";
 import "../../hardworkInterface/IController.sol";
-import "../../hardworkInterface/IStrategy.sol";
+import "../../hardworkInterface/IStrategyV2.sol";
 import "../../Controllable.sol";
 import "../../uniswap/interfaces/IUniswapV2Router02.sol";
 
 
-contract CRVStrategyWRenBTC is IStrategy, ProfitNotifier {
+contract CRVStrategyWRenBTCV2 is IStrategyV2, RewardTokenProfitNotifier {
 
   enum TokenIndex {REN_BTC, WBTC}
 
@@ -72,11 +71,13 @@ contract CRVStrategyWRenBTC is IStrategy, ProfitNotifier {
   bool public sell = true;
 
   // minimum CRV amount to be liquidation
-  uint256 public sellFloor = 30e18;
+  uint256 public sellFloor = 1e18;
 
   event Liquidating(uint256 amount);
   event ProfitsNotCollected();
+  event NotLiquidating(uint256 balance);
 
+  address public underlying;
 
   modifier restricted() {
     require(msg.sender == vault || msg.sender == controller()
@@ -98,7 +99,7 @@ contract CRVStrategyWRenBTC is IStrategy, ProfitNotifier {
     address _mintr,
     address _uniswap
   )
-  ProfitNotifier(_storage, _wbtc) public {
+  RewardTokenProfitNotifier(_storage, _crv) public {
     vault = _vault;
     wbtc = _wbtc;
     tokenIndex = TokenIndex(_tokenIndex);
@@ -108,6 +109,7 @@ contract CRVStrategyWRenBTC is IStrategy, ProfitNotifier {
     crv = _crv;
     uni = _uniswap;
     mintr = _mintr;
+    underlying = _wbtc;
 
     uniswap_CRV2WBTC = [_crv, _weth, _wbtc];
 
@@ -306,18 +308,18 @@ contract CRVStrategyWRenBTC is IStrategy, ProfitNotifier {
     Mintr(mintr).mint(gauge);
     // claiming rewards and liquidating them
     uint256 crvBalance = IERC20(crv).balanceOf(address(this));
-    emit Liquidating(crvBalance);
     if (crvBalance > sellFloor) {
-      uint256 wbtcBalanceBefore = IERC20(wbtc).balanceOf(address(this));
+      notifyProfitInRewardToken(crvBalance);
+      crvBalance = IERC20(crv).balanceOf(address(this));
+      emit Liquidating(crvBalance);
       IERC20(crv).safeApprove(uni, 0);
       IERC20(crv).safeApprove(uni, crvBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
       IUniswapV2Router02(uni).swapExactTokensForTokens(
         crvBalance, 1, uniswap_CRV2WBTC, address(this), block.timestamp
       );
-
-      // now we have WBTC
-      notifyProfit(wbtcBalanceBefore, IERC20(wbtc).balanceOf(address(this)));
+    } else {
+      emit NotLiquidating(crvBalance);
     }
   }
 

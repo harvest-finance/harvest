@@ -1,15 +1,16 @@
 pragma solidity 0.5.16;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20Mintable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../../hardworkInterface/IStrategy.sol";
+import "../../hardworkInterface/IStrategyV2.sol";
 import "../../Controllable.sol";
 import "../../hardworkInterface/IVault.sol";
 
 
-contract NoopStrategy is IStrategy, Controllable {
+contract InterestEarningStrategy is IStrategyV2, Controllable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -20,7 +21,10 @@ contract NoopStrategy is IStrategy, Controllable {
   // These tokens cannot be claimed by the controller
   mapping(address => bool) public unsalvagableTokens;
 
-  bool public withdrawAllCalled = false;
+  // for unit tests of the withdraw logic
+  uint256 public test_sharesWithdraw;
+  uint256 public test_amountWithdraw;
+  uint256 public test_sharesTotalWithdraw;
 
   constructor(address _storage, address _underlying, address _vault) public
   Controllable(_storage) {
@@ -53,11 +57,15 @@ contract NoopStrategy is IStrategy, Controllable {
   function investAllUnderlying() public {
   }
 
+  function addInterest() external onlyGovernance {
+    // adds 5% of the total balance
+    ERC20Mintable(address(underlying)).mint(address(this), underlying.balanceOf(address(this)).div(20));
+  }
+
   /*
   * Cashes everything out and withdraws to the vault
   */
   function withdrawAllToVault() external onlyVault {
-    withdrawAllCalled = true;
     if (underlying.balanceOf(address(this)) > 0) {
       underlying.safeTransfer(address(vault), underlying.balanceOf(address(this)));
     }
@@ -66,7 +74,10 @@ contract NoopStrategy is IStrategy, Controllable {
   /*
   * Cashes some amount out and withdraws to the vault
   */
-  function withdrawToVault(uint256 amount) external onlyVault {
+  function withdrawToVault(uint256 amount, uint256 shares, uint256 sharesTotal) external onlyVault {
+    test_amountWithdraw = amount;
+    test_sharesTotalWithdraw = sharesTotal;
+    test_sharesWithdraw = shares;
     if (amount > 0) {
       underlying.safeTransfer(address(vault), amount);
     }

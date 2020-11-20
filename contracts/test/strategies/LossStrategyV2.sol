@@ -4,23 +4,23 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../../hardworkInterface/IStrategy.sol";
+import "../../hardworkInterface/IStrategyV2.sol";
+import "../../hardworkInterface/IController.sol";
 import "../../Controllable.sol";
+import "../../Storage.sol";
 import "../../hardworkInterface/IVault.sol";
 
-
-contract NoopStrategy is IStrategy, Controllable {
+contract LossStrategyV2 is IStrategyV2, Controllable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
 
   IERC20 public underlying;
   IVault public vault;
+  uint256 public balance;
 
   // These tokens cannot be claimed by the controller
-  mapping(address => bool) public unsalvagableTokens;
-
-  bool public withdrawAllCalled = false;
+  mapping (address => bool) public unsalvagableTokens;
 
   constructor(address _storage, address _underlying, address _vault) public
   Controllable(_storage) {
@@ -39,6 +39,12 @@ contract NoopStrategy is IStrategy, Controllable {
     _;
   }
 
+  modifier restricted() {
+    require(msg.sender == address(vault) || msg.sender == address(controller()),
+      "The sender has to be the controller or vault");
+    _;
+  }
+
   /*
   * Returns the total invested amount.
   */
@@ -51,25 +57,26 @@ contract NoopStrategy is IStrategy, Controllable {
   * Invests all tokens that were accumulated so far
   */
   function investAllUnderlying() public {
+    // get rid of 10% forever
+    uint256 contribution = underlying.balanceOf(address(this)).sub(balance);
+    underlying.transfer(address(1), contribution.div(10));
+    balance = underlying.balanceOf(address(this));
   }
 
   /*
   * Cashes everything out and withdraws to the vault
   */
-  function withdrawAllToVault() external onlyVault {
-    withdrawAllCalled = true;
-    if (underlying.balanceOf(address(this)) > 0) {
-      underlying.safeTransfer(address(vault), underlying.balanceOf(address(this)));
-    }
+  function withdrawAllToVault() external restricted {
+    underlying.safeTransfer(address(vault), underlying.balanceOf(address(this)));
+    balance = underlying.balanceOf(address(this));
   }
 
   /*
   * Cashes some amount out and withdraws to the vault
   */
-  function withdrawToVault(uint256 amount) external onlyVault {
-    if (amount > 0) {
-      underlying.safeTransfer(address(vault), amount);
-    }
+  function withdrawToVault(uint256 amount, uint256 shares, uint256 totalShares) external restricted {
+    underlying.safeTransfer(address(vault), amount);
+    balance = underlying.balanceOf(address(this));
   }
 
   /*
@@ -77,6 +84,7 @@ contract NoopStrategy is IStrategy, Controllable {
   */
   function doHardWork() external onlyVault {
     // a no-op
+    investAllUnderlying();
   }
 
   // should only be called by controller

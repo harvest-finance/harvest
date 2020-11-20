@@ -1,10 +1,10 @@
 pragma solidity 0.5.16;
 
-import "../../Vault.sol";
+import "./VaultV2.sol";
 
-contract VaultUpgradableSooner is Vault {
+contract VaultUpgradableSooner is VaultV2 {
 
-  constructor() Vault() public {}
+  constructor() VaultV2() public {}
 
   function overrideNextImplementationDelay(uint256 _nextImplementationDelay) public {
     _setNextImplementationDelay(_nextImplementationDelay);

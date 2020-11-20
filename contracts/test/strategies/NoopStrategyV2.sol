@@ -4,12 +4,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../../hardworkInterface/IStrategy.sol";
+import "../../hardworkInterface/IStrategyV2.sol";
 import "../../Controllable.sol";
 import "../../hardworkInterface/IVault.sol";
 
 
-contract NoopStrategy is IStrategy, Controllable {
+contract NoopStrategyV2 is IStrategyV2, Controllable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -66,7 +66,7 @@ contract NoopStrategy is IStrategy, Controllable {
   /*
   * Cashes some amount out and withdraws to the vault
   */
-  function withdrawToVault(uint256 amount) external onlyVault {
+  function withdrawToVault(uint256 amount, uint256 shares, uint256 totalShares) external onlyVault {
     if (amount > 0) {
       underlying.safeTransfer(address(vault), amount);
     }

@@ -6,15 +6,14 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Detailed.sol";
-import "./hardworkInterface/IStrategy.sol";
-import "./hardworkInterface/IStrategyV2.sol";
-import "./hardworkInterface/IController.sol";
-import "./hardworkInterface/IVault.sol";
-import "./hardworkInterface/IUpgradeSource.sol";
-import "./ControllableInit.sol";
-import "./VaultStorage.sol";
+import "../../hardworkInterface/IStrategy.sol";
+import "../../hardworkInterface/IController.sol";
+import "../../hardworkInterface/IVault.sol";
+import "../../hardworkInterface/IUpgradeSource.sol";
+import "../../ControllableInit.sol";
+import "../../VaultStorage.sol";
 
-contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit, VaultStorage {
+contract VaultV2 is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit, VaultStorage {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -112,20 +111,9 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
   * doHardWork on the current strategy. Call this through controller to claim hard rewards.
   */
   function doHardWork() whenStrategyDefined onlyControllerOrGovernance external {
-    if (_withdrawBeforeReinvesting()) {
-      IStrategy(strategy()).withdrawAllToVault();
-    }
-
     // ensure that new funds are invested too
     invest();
     IStrategy(strategy()).doHardWork();
-    uint256 sharePriceAfterHardWork = getPricePerFullShare();
-
-    if (!allowSharePriceDecrease()) {
-      require(_sharePriceCheckpoint() <= sharePriceAfterHardWork, "Share price should not decrease");
-    }
-
-    _setSharePriceCheckpoint(sharePriceAfterHardWork);
   }
 
   /*
@@ -152,26 +140,15 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
         : underlyingUnit().mul(underlyingBalanceWithInvestment()).div(totalSupply());
   }
 
-  function getPricePerFullShareCheckpoint() public view returns (uint256) {
-    return _sharePriceCheckpoint();
-  }
-
-  function getEstimatedWithdrawalAmount(uint256 numberOfShares) public view returns (uint256 estimatedWithdrawal, uint256 realTimeCalculatedValue) {
-    uint256 storedSharePrice = _sharePriceCheckpoint();
-    uint256 calculatedSharePrice = getPricePerFullShare();
-    return (
-      numberOfShares.mul(Math.min(storedSharePrice, calculatedSharePrice))
-        .div(underlyingUnit()),
-
-      numberOfShares.mul(calculatedSharePrice)
-        .div(underlyingUnit())
-    );
-  }
-
+  /* get the user's share (in underlying)
+  */
   function underlyingBalanceWithInvestmentForHolder(address holder) view external returns (uint256) {
-    // for compatibility
-    (uint256 estimatedWithdrawal, ) = getEstimatedWithdrawalAmount(balanceOf(holder));
-    return estimatedWithdrawal;
+    if (totalSupply() == 0) {
+      return 0;
+    }
+    return underlyingBalanceWithInvestment()
+        .mul(balanceOf(holder))
+        .div(totalSupply());
   }
 
   function futureStrategy() public view returns (address) {
@@ -239,22 +216,6 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     _setVaultFractionToInvestDenominator(denominator);
   }
 
-  function setWithdrawBeforeReinvesting(bool value) external onlyGovernance {
-    _setWithdrawBeforeReinvesting(value);
-  }
-
-  function withdrawBeforeReinvesting() public view returns (bool) {
-    return _withdrawBeforeReinvesting();
-  }
-
-  function setAllowSharePriceDecrease(bool value) external onlyGovernance {
-    _setAllowSharePriceDecrease(value);
-  }
-
-  function allowSharePriceDecrease() public view returns (bool) {
-    return _allowSharePriceDecrease();
-  }
-
   function rebalance() external onlyControllerOrGovernance {
     withdrawAll();
     invest();
@@ -308,40 +269,24 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
   function withdraw(uint256 numberOfShares) external {
     require(totalSupply() > 0, "Vault has no shares");
     require(numberOfShares > 0, "numberOfShares must be greater than 0");
-    uint256 totalShareSupply = totalSupply();
+    uint256 totalSupply = totalSupply();
     _burn(msg.sender, numberOfShares);
 
-    uint256 storedSharePrice = _sharePriceCheckpoint();
-    uint256 calculatedSharePrice = getPricePerFullShare();
-
-    uint256 underlyingAmountToWithdraw = numberOfShares
-      .mul(Math.min(storedSharePrice, calculatedSharePrice))
-      .div(underlyingUnit());
-
+    uint256 underlyingAmountToWithdraw = underlyingBalanceWithInvestment()
+        .mul(numberOfShares)
+        .div(totalSupply);
     if (underlyingAmountToWithdraw > underlyingBalanceInVault()) {
       // withdraw everything from the strategy to accurately check the share value
-      if (numberOfShares == totalShareSupply) {
+      if (numberOfShares == totalSupply) {
         IStrategy(strategy()).withdrawAllToVault();
-        underlyingAmountToWithdraw = underlyingBalanceInVault();
       } else {
-        uint256 missingUnderlying = underlyingAmountToWithdraw.sub(underlyingBalanceInVault());
-        uint256 missingShares = numberOfShares.mul(missingUnderlying).div(underlyingAmountToWithdraw);
-        // When withdrawing to vault here, the vault does not have any assets. Therefore,
-        // all the assets that are in the strategy match the total supply of shares, increased
-        // by the share proportion that was already burned at the beginning of this withdraw transaction.
-        IStrategyV2(strategy()).withdrawToVault(missingUnderlying, missingShares, (totalSupply()).add(missingShares));
-        // recalculate to improve accuracy
-        calculatedSharePrice = getPricePerFullShare();
-
-        uint256 updatedUnderlyingAmountToWithdraw = numberOfShares
-          .mul(Math.min(storedSharePrice, calculatedSharePrice))
-          .div(underlyingUnit());
-
-        underlyingAmountToWithdraw = Math.min(
-          updatedUnderlyingAmountToWithdraw,
-          underlyingBalanceInVault()
-        );
+        uint256 missing = underlyingAmountToWithdraw.sub(underlyingBalanceInVault());
+        IStrategy(strategy()).withdrawToVault(missing);
       }
+      // recalculate to improve accuracy
+      underlyingAmountToWithdraw = Math.min(underlyingBalanceWithInvestment()
+          .mul(numberOfShares)
+          .div(totalSupply), underlyingBalanceInVault());
     }
 
     IERC20(underlying()).safeTransfer(msg.sender, underlyingAmountToWithdraw);
@@ -358,13 +303,9 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
       require(IStrategy(strategy()).depositArbCheck(), "Too much arb");
     }
 
-    uint256 storedSharePrice = _sharePriceCheckpoint();
-    uint256 calculatedSharePrice = getPricePerFullShare();
-
-    uint256 toMint = amount.mul(underlyingUnit()).div(
-      Math.max(storedSharePrice, calculatedSharePrice)
-    );
-
+    uint256 toMint = totalSupply() == 0
+        ? amount
+        : amount.mul(totalSupply()).div(underlyingBalanceWithInvestment());
     _mint(beneficiary, toMint);
 
     IERC20(underlying()).safeTransferFrom(sender, address(this), amount);
@@ -393,12 +334,5 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
   function finalizeUpgrade() external onlyGovernance {
     _setNextImplementation(address(0));
     _setNextImplementationTimestamp(0);
-    // for vaults V3
-    _setSharePriceCheckpoint(getPricePerFullShare());
-    _setAllowSharePriceDecrease(false);
-    _setWithdrawBeforeReinvesting(false);
-    require(getPricePerFullShareCheckpoint() == getPricePerFullShare(), "share price corrupted");
-    require(!withdrawBeforeReinvesting(), "withdrawBeforeReinvesting is incorrect");
-    require(!allowSharePriceDecrease(), "allowSharePriceDecrease is incorrect");
   }
 }

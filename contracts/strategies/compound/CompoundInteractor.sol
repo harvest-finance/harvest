@@ -151,6 +151,20 @@ contract CompoundInteractor is ReentrancyGuard {
       redeemUnderlyingInWeth(available < owned ? available : owned);
   }
 
+  function getLiquidity() external view returns(uint256) {
+    return ctoken.getCash();
+  }
+
+  function redeemMaximumToken() internal {
+    // amount of tokens in ctoken
+    uint256 available = ctoken.getCash();
+    // amount of tokens we own
+    uint256 owned = ctoken.balanceOfUnderlying(address(this));
+
+    // redeem the most we can redeem
+    _redeemUnderlying(available < owned ? available : owned);
+  }
+
   function () external payable {} // this is needed for the WETH unwrapping
 }
 
