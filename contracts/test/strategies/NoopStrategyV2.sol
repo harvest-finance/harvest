@@ -66,7 +66,8 @@ contract NoopStrategyV2 is IStrategyV2, Controllable {
   /*
   * Cashes some amount out and withdraws to the vault
   */
-  function withdrawToVault(uint256 amount, uint256 shares, uint256 totalShares) external onlyVault {
+  function withdrawToVault(uint256 shares, uint256 totalShares) external onlyVault {
+    uint256 amount = underlying.balanceOf(address(this)).mul(shares).div(totalShares);
     if (amount > 0) {
       underlying.safeTransfer(address(vault), amount);
     }

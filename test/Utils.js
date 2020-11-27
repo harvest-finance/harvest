@@ -30,7 +30,7 @@ async function advanceNBlock (n) {
   await time.advanceBlockTo(endBlock);
 }
 async function waitHours (n) {
-  await time.increase(n * 3600 + 1); 
+  await time.increase(n * 3600 + 1);
 };
 
 function assertBNEq(a, b){
@@ -52,6 +52,13 @@ function assertBNGt(a, b){
   let _b = new BigNumber(b);
   let msg = _a.toFixed() + " is not greater than " + _b.toFixed();
   assert.equal(_a.gt(_b), true, msg);
+}
+
+function assertBNGte(a, b){
+  let _a = new BigNumber(a);
+  let _b = new BigNumber(b);
+  let msg = _a.toFixed() + " is not greater than " + _b.toFixed();
+  assert.equal(_a.gte(_b), true, msg);
 }
 
 function assertNEqBN(a, b){
@@ -76,4 +83,5 @@ module.exports = {
   assertNEqBN,
   inBNfixed,
   waitHours,
+  assertBNGte,
 };

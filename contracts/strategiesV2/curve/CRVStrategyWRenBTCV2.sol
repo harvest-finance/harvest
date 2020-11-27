@@ -27,6 +27,7 @@ contract CRVStrategyWRenBTCV2 is IStrategyV2, RewardTokenProfitNotifier {
 
   // wbtc token address (or ren if we want both)
   address public wbtc;
+  address public underlying;
 
   // the matching enum record used to determine the index
   TokenIndex tokenIndex;
@@ -76,8 +77,6 @@ contract CRVStrategyWRenBTCV2 is IStrategyV2, RewardTokenProfitNotifier {
   event Liquidating(uint256 amount);
   event ProfitsNotCollected();
   event NotLiquidating(uint256 balance);
-
-  address public underlying;
 
   modifier restricted() {
     require(msg.sender == vault || msg.sender == controller()
@@ -193,7 +192,8 @@ contract CRVStrategyWRenBTCV2 is IStrategyV2, RewardTokenProfitNotifier {
   * Curve protocol pool. If the amount requested cannot be obtained, the method will get as much
   * as we have.
   */
-  function withdrawToVault(uint256 amountWbtc, uint256 correspondingShares, uint256 totalShares) external restricted {
+  function withdrawToVault(uint256 correspondingShares, uint256 totalShares) external restricted {
+    uint256 balanceBefore = IERC20(underlying).balanceOf(address(this));
     // withdraw all from gauge
     Gauge(gauge).withdraw(Gauge(gauge).balanceOf(address(this)));
 
@@ -207,10 +207,9 @@ contract CRVStrategyWRenBTCV2 is IStrategyV2, RewardTokenProfitNotifier {
     ICurveFiWbtc(curve).remove_liquidity_one_coin(mixTokenToConvert, int128(tokenIndex), 0);
 
     // we can transfer the asset to the vault
-    uint256 actualBalance = IERC20(wbtc).balanceOf(address(this));
-    if (actualBalance > 0) {
-      IERC20(wbtc).safeTransfer(vault, Math.min(amountWbtc, actualBalance));
-    }
+    uint256 balanceAfter = IERC20(underlying).balanceOf(address(this));
+    require (balanceAfter > balanceBefore, "Withdrawal produced nothing");
+    IERC20(underlying).safeTransfer(vault, balanceAfter.sub(balanceBefore));
 
     // invest back the rest
     investAllUnderlying();

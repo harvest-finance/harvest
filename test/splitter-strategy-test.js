@@ -16,7 +16,7 @@ const makeVault = require("./make-vault.js");
 
 BigNumber.config({ DECIMAL_PLACES: 0 });
 
-contract.only("Splitter Strategy Unit Tests", function (accounts) {
+contract.skip("Splitter Strategy Unit Tests", function (accounts) {
   describe("Splitter Strategy", function () {
     // external contracts
     let dai;
@@ -261,7 +261,7 @@ contract.only("Splitter Strategy Unit Tests", function (accounts) {
         );
       });
 
-      it("Does not whitelist a strategy that has a balance", async function () {
+      it("Does not unwhitelist a strategy that has a balance", async function () {
         await depositVault(farmer1, dai, daiVault, farmerBalance1);
 
         // doing hard work to push the money
@@ -271,7 +271,7 @@ contract.only("Splitter Strategy Unit Tests", function (accounts) {
           splitter.unwhitelistStrategy(strategy1.address, {
             from: governance,
           }),
-          "can only whitelist an empty strategy"
+          "can only unwhitelist an empty strategy"
         );
 
         // empty the strategy
@@ -437,7 +437,7 @@ contract.only("Splitter Strategy Unit Tests", function (accounts) {
           splitter.unwhitelistStrategy(strategy2.address, {
             from: governance,
           }),
-          "can only whitelist an empty strategy"
+          "can only unwhitelist an empty strategy"
         );
 
         // Withdraw. strategy2 should be drained before strategy1 as per the withdrawal order

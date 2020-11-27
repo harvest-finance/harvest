@@ -8,8 +8,8 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Detailed.sol";
 import "./hardworkInterface/IStrategy.sol";
 import "./hardworkInterface/IStrategyV2.sol";
-import "./hardworkInterface/IController.sol";
 import "./hardworkInterface/IVault.sol";
+import "./hardworkInterface/IController.sol";
 import "./hardworkInterface/IUpgradeSource.sol";
 import "./ControllableInit.sol";
 import "./VaultStorage.sol";
@@ -24,6 +24,22 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
   event Invest(uint256 amount);
   event StrategyAnnounced(address newStrategy, uint256 time);
   event StrategyChanged(address newStrategy, address oldStrategy);
+
+  modifier whenStrategyDefined() {
+    require(address(strategy()) != address(0), "Strategy must be defined");
+    _;
+  }
+
+  // Only smart contracts will be affected by this modifier
+  modifier defense() {
+    require(
+      (msg.sender == tx.origin) ||                // If it is a normal user and not smart contract,
+      // then the requirement will pass
+      !IController(controller()).greyList(msg.sender), // If it is a smart contract, then
+      "This smart contract has been grey listed"  // make sure that it is not on our greyList.
+    );
+    _;
+  }
 
   constructor() public {
   }
@@ -91,27 +107,11 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     return _nextImplementationDelay();
   }
 
-  modifier whenStrategyDefined() {
-    require(address(strategy()) != address(0), "Strategy must be defined");
-    _;
-  }
-
-  // Only smart contracts will be affected by this modifier
-  modifier defense() {
-    require(
-      (msg.sender == tx.origin) ||                // If it is a normal user and not smart contract,
-                                                  // then the requirement will pass
-      !IController(controller()).greyList(msg.sender), // If it is a smart contract, then
-      "This smart contract has been grey listed"  // make sure that it is not on our greyList.
-    );
-    _;
-  }
-
   /**
   * Chooses the best strategy and re-invests. If the strategy did not change, it just calls
   * doHardWork on the current strategy. Call this through controller to claim hard rewards.
   */
-  function doHardWork() whenStrategyDefined onlyControllerOrGovernance external {
+  function doHardWork() external whenStrategyDefined onlyControllerOrGovernance {
     if (_withdrawBeforeReinvesting()) {
       IStrategy(strategy()).withdrawAllToVault();
     }
@@ -255,11 +255,6 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     return _allowSharePriceDecrease();
   }
 
-  function rebalance() external onlyControllerOrGovernance {
-    withdrawAll();
-    invest();
-  }
-
   function availableToInvestOut() public view returns (uint256) {
     uint256 wantInvestInTotal = underlyingBalanceWithInvestment()
         .mul(vaultFractionToInvestNumerator())
@@ -329,7 +324,7 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
         // When withdrawing to vault here, the vault does not have any assets. Therefore,
         // all the assets that are in the strategy match the total supply of shares, increased
         // by the share proportion that was already burned at the beginning of this withdraw transaction.
-        IStrategyV2(strategy()).withdrawToVault(missingUnderlying, missingShares, (totalSupply()).add(missingShares));
+        IStrategyV2(strategy()).withdrawToVault(missingShares, (totalSupply()).add(missingShares));
         // recalculate to improve accuracy
         calculatedSharePrice = getPricePerFullShare();
 

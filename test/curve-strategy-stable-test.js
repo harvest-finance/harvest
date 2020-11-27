@@ -138,11 +138,14 @@ contract("Curve Strategy Stable Unit Test", function (accounts) {
       let farmerOldBalance = new BigNumber(await dai.balanceOf(farmer1));
       await depositVault(farmer1, dai, daiVault, farmerBalance);
       await Utils.advanceNBlock(100);
-      await controller.doHardWork(daiVault.address, {from : governance});
+      let hint = await controller.getPricePerFullShare(daiVault.address);
+      await controller.doHardWork(daiVault.address, hint, 100, 100, {from : governance});
       await Utils.advanceNBlock(100);
-      await controller.doHardWork(daiVault.address, {from : governance});
+      hint = await controller.getPricePerFullShare(daiVault.address);
+      await controller.doHardWork(daiVault.address, hint, 100, 100, {from : governance});
       await Utils.advanceNBlock(100);
-      await controller.doHardWork(daiVault.address, {from : governance});
+      hint = await controller.getPricePerFullShare(daiVault.address);
+      await controller.doHardWork(daiVault.address, hint, 100, 100, {from : governance});
       await daiVault.withdraw(farmerBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await dai.balanceOf(farmer1));
       Utils.assertBNEq(farmerNewBalance, farmerOldBalance);

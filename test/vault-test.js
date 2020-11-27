@@ -3,16 +3,16 @@ const Vault = artifacts.require("Vault");
 const VaultProxy = artifacts.require("VaultProxy");
 const Controller = artifacts.require("Controller");
 const MockToken = artifacts.require("MockToken");
-const NoopStrategy = artifacts.require("NoopStrategy");
-const LossStrategy = artifacts.require("LossStrategy");
-const ProfitStrategy = artifacts.require("ProfitStrategy");
+const NoopStrategy = artifacts.require("NoopStrategyV2");
+const LossStrategy = artifacts.require("LossStrategyV2");
+const ProfitStrategy = artifacts.require("ProfitStrategyV2");
 const MockGreyListed = artifacts.require("MockGreyListed");
 const Storage = artifacts.require("Storage");
 const MockUSDC = artifacts.require("MockUSDC");
-const CompoundStrategy = artifacts.require("CompoundStrategy");
-const MockComptroller = artifacts.require("MockComptroller");
-const VaultStrategySwitchLock = artifacts.require("VaultStrategySwitchLock");
 const VaultUpgradableSooner = artifacts.require("VaultUpgradableSooner");
+const InterestEarningStrategy = artifacts.require("InterestEarningStrategy");
+const BigNumber = require('bignumber.js');
+BigNumber.config({DECIMAL_PLACES: 0});
 
 const Utils = require("./Utils.js");
 const makeVault = require("./make-vault.js");
@@ -379,6 +379,14 @@ contract("Vault Test", function (accounts) {
         await vault.underlyingBalanceWithInvestmentForHolder(farmer)
       );
 
+      // initial doHardWork call should fail: allowSharePriceDecrease is false
+      await expectRevert(
+        vault.doHardWork({ from: controller }),
+        "Share price should not decrease."
+      );
+      // now, setting allowSharePriceDecrease to true
+      await vault.setAllowSharePriceDecrease(true, { from: governance });
+
       // make the investment
       await vault.doHardWork({ from: controller });
       assert.equal(roundBalance, await vault.balanceOf(farmer));
@@ -435,6 +443,14 @@ contract("Vault Test", function (accounts) {
         from: farmerBob,
       });
       await vault.deposit(roundBalance, { from: farmerBob });
+
+      // initial doHardWork call should fail: allowSharePriceDecrease is false
+      await expectRevert(
+        vault.doHardWork({ from: controller }),
+        "Share price should not decrease."
+      );
+      // now, setting allowSharePriceDecrease to true
+      await vault.setAllowSharePriceDecrease(true, { from: governance });
 
       // make the investment
       await vault.doHardWork({ from: controller });
@@ -527,11 +543,11 @@ contract("Vault Test", function (accounts) {
         await vault.totalSupply()
       );
       assert.equal(0, await vault.underlyingBalanceInVault());
-      assert.equal(
+      Utils.assertBNEq(
         roundBalancePostGain * 2,
         await vault.underlyingBalanceWithInvestment()
       );
-      assert.equal(
+      Utils.assertBNEq(
         Math.trunc(
           (expectedShares * roundBalancePostGain * 2) /
             (expectedShares + Math.trunc(roundBalance))
@@ -541,25 +557,25 @@ contract("Vault Test", function (accounts) {
 
       // withdraw after the investment for farmer
       await vault.withdraw(roundBalance, { from: farmer });
-      assert.equal(
+      Utils.assertBNEq(
         roundBalancePostGainFarmer,
         await underlying.balanceOf(farmer)
       );
-      assert.equal(0, await vault.balanceOf(farmer));
+      Utils.assertBNEq(0, await vault.balanceOf(farmer));
 
       // withdraw after the investment for farmerBob, the strategy eats another 10%
       await vault.withdraw(expectedShares, { from: farmerBob });
-      assert.equal(
+      Utils.assertBNEq(
         roundBalancePostGainFarmerBob,
         await underlying.balanceOf(farmerBob)
       );
-      assert.equal(0, await vault.balanceOf(farmerBob));
+      Utils.assertBNEq(0, await vault.balanceOf(farmerBob));
 
       // the vault has nothing
-      assert.equal(0, await vault.availableToInvestOut());
-      assert.equal(0, await vault.underlyingBalanceInVault());
-      assert.equal(tokenUnit, await vault.getPricePerFullShare());
-      assert.equal(
+      Utils.assertBNEq(0, await vault.availableToInvestOut());
+      Utils.assertBNEq(0, await vault.underlyingBalanceInVault());
+      Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShare());
+      Utils.assertBNEq(
         0,
         await vault.underlyingBalanceWithInvestmentForHolder(farmer)
       );
@@ -570,19 +586,36 @@ contract("Vault Test", function (accounts) {
       // reset token balance
       await underlying.transfer(burner, farmerBalance, { from: farmer });
       await underlying.mint(farmer, roundBalance, { from: governance });
-      assert.equal(roundBalance, await underlying.balanceOf(farmer));
+      Utils.assertBNEq(roundBalance, await underlying.balanceOf(farmer));
 
       // deposit some tokens for one farmer, will receive 1x shares
       await underlying.approve(vault.address, roundBalance, { from: farmer });
       await vault.deposit(roundBalance, { from: farmer });
-      assert.equal(roundBalance, await vault.balanceOf(farmer));
+      Utils.assertBNEq(roundBalance, await vault.balanceOf(farmer));
 
       // check pre-investment and post-investment
-      assert.equal(roundBalance / 2, await vault.availableToInvestOut());
-      assert.equal(roundBalance, await vault.underlyingBalanceInVault());
+      Utils.assertBNEq(roundBalance / 2, await vault.availableToInvestOut());
+      Utils.assertBNEq(roundBalance, await vault.underlyingBalanceInVault());
       await vault.doHardWork({ from: governance });
-      assert.equal(0, await vault.availableToInvestOut());
-      assert.equal(roundBalance / 2, await vault.underlyingBalanceInVault());
+      Utils.assertBNEq(0, await vault.availableToInvestOut());
+      Utils.assertBNEq(roundBalance / 2, await vault.underlyingBalanceInVault());
+    });
+
+    it("withdrawBeforeReinvesting takes effect", async function () {
+      await vault.setWithdrawBeforeReinvesting(true, { from: governance });
+      // reset token balance
+      await underlying.transfer(burner, farmerBalance, { from: farmer });
+      await underlying.mint(farmer, roundBalance, { from: governance });
+      Utils.assertBNEq(roundBalance, await underlying.balanceOf(farmer));
+
+      // deposit some tokens for one farmer, will receive 1x shares
+      await underlying.approve(vault.address, roundBalance, { from: farmer });
+      await vault.deposit(roundBalance, { from: farmer });
+
+      assert.equal(await strategy.withdrawAllCalled(), false);
+      await vault.doHardWork({ from: governance });
+      assert.equal(await strategy.withdrawAllCalled(), true);
+      Utils.assertBNEq(roundBalance, await vault.balanceOf(farmer));
     });
 
     it("Greylist effective on smart contract, but not on EOA", async function () {
@@ -624,7 +657,7 @@ contract("Vault Test", function (accounts) {
 
       // should go through the first time
       await mockGreyListed.deposit(underlying.address, mockDepositBalance);
-      assert.equal(
+      Utils.assertBNEq(
         mockDepositBalance,
         await vault.balanceOf(mockGreyListed.address)
       );
@@ -637,7 +670,7 @@ contract("Vault Test", function (accounts) {
         mockGreyListed.deposit(underlying.address, mockDepositBalance),
         "This smart contract has been grey listed"
       );
-      assert.equal(
+      Utils.assertBNEq(
         mockDepositBalance,
         await vault.balanceOf(mockGreyListed.address)
       );
@@ -647,7 +680,7 @@ contract("Vault Test", function (accounts) {
 
       // should go through
       await mockGreyListed.deposit(underlying.address, mockDepositBalance);
-      assert.equal(
+      Utils.assertBNEq(
         2 * mockDepositBalance,
         await vault.balanceOf(mockGreyListed.address)
       );
@@ -659,13 +692,159 @@ contract("Vault Test", function (accounts) {
       await vault.deposit(farmerBalance, { from: farmer });
 
       // EOA human farmer could still bypass greylist
-      assert.equal(farmerBalance, await vault.balanceOf(farmer));
+      Utils.assertBNEq(farmerBalance, await vault.balanceOf(farmer));
+    });
+
+    describe("Flashloan prevention tests", function () {
+
+      it("Proper share price is used", async function () {
+
+        // set up the vault with 100% investment
+        vault = await makeVault(storage.address, underlying.address, 100, 100, {
+          from: governance,
+        });
+
+        // set up the strategy
+        strategy = await InterestEarningStrategy.new(
+          storage.address,
+          underlying.address,
+          vault.address,
+          { from: governance }
+        );
+        await vault.setStrategy(strategy.address, { from: controller });
+        assert.equal(strategy.address, await vault.strategy());
+
+        underlying.addMinter(strategy.address, { from: governance });
+
+        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShare());
+        await underlying.approve(vault.address, farmerBalance, { from: farmer });
+        await vault.deposit(roundBalance, { from: farmer });
+        Utils.assertBNEq(roundBalance, await vault.balanceOf(farmer));
+        Utils.assertBNEq(
+          roundBalance,
+          await vault.underlyingBalanceWithInvestmentForHolder(farmer)
+        );
+
+        // initially, both getPricePerFullShare and getPricePerFullShareCheckpoint are tokenUnit
+        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShare());
+        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShareCheckpoint());
+
+        await vault.doHardWork({from: governance});
+        // the initial doHardWork doesn't change anything
+        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShare());
+        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShareCheckpoint());
+
+        // add interest only changes getPricePerFullShare, not the checkpoint
+        await strategy.addInterest({from: governance});
+        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShareCheckpoint());
+        const roundBalancePlusFivePercent = roundBalance * 1.05;
+        Utils.assertBNEq(new BigNumber(roundBalancePlusFivePercent).times(tokenUnit).dividedBy(roundBalance), await vault.getPricePerFullShare());
+
+        // the withdrawal amount is still roundBalance because doHardWork was not called
+        // for getEstimatedWithdrawalAmount[0] it's roundBalance
+        // for getEstimatedWithdrawalAmount[1] it's roundBalance + 5%
+        let farmerShares = await vault.balanceOf(farmer);
+        Utils.assertBNEq(farmerShares, roundBalance);
+        Utils.assertBNEq(roundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
+        Utils.assertBNEq(roundBalancePlusFivePercent, (await vault.getEstimatedWithdrawalAmount(farmerShares))[1]);
+
+        // the next deposit would be using getPricePerFullShare not getPricePerFullShareCheckpoint
+        await underlying.mint(farmer, roundBalance, { from: governance });
+        const lastSharePrice = await vault.getPricePerFullShare();
+        await vault.deposit(roundBalance, { from: farmer });
+        farmerShares = await vault.balanceOf(farmer);
+
+        // the number of shares issued the second time would be roundBalance * tokenUnit / lastSharePrice
+        Utils.assertBNEq(Number(roundBalance) + Math.round(roundBalance * tokenUnit / lastSharePrice) - 1, farmerShares);
+
+        // the farmer's balance would be roundBalance (first deposit) + roundBalancePlusFivePercent (second deposit)
+        // there is a rounding problem, therefore, had to subtract 1
+        const roundBalancePlusFivePercentPlusRoundBalance = Number(roundBalance) + Number(roundBalancePlusFivePercent) - 1;
+        Utils.assertBNEq(farmerShares, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
+        // however, the second component of getEstimatedWithdrawalAmount returns the proper amount
+        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[1]);
+
+        // after the next doHardWork, both getEstimatedWithdrawalAmount[0] and getEstimatedWithdrawalAmount[1] are equal
+        await vault.doHardWork({from: governance});
+
+        farmerShares = await vault.balanceOf(farmer);
+        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
+        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[1]);
+
+        // now, add more interest
+        await strategy.addInterest({from: governance});
+
+        farmerShares = await vault.balanceOf(farmer);
+        // this will make the two amounts differ again
+        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
+        Utils.assertBNGt((await vault.getEstimatedWithdrawalAmount(farmerShares))[1], roundBalancePlusFivePercentPlusRoundBalance);
+
+        // however, ensure that the withdrawal uses the first amount
+        const farmerBalanceBefore = await underlying.balanceOf(farmer);
+        // withdrawing half of the shares, otherwise we are hitting the edge case when the entire shares are withdrawn
+        await vault.withdraw(farmerShares / 2, { from: farmer });
+        Utils.assertBNEq(Math.trunc(roundBalancePlusFivePercentPlusRoundBalance / 2), (await underlying.balanceOf(farmer)) - farmerBalanceBefore);
+      });
+
+      it("Proper share parametes on withdraw", async function () {
+
+        // set up the vault with 100% investment
+        vault = await makeVault(storage.address, underlying.address, 100, 100, {
+          from: governance,
+        });
+
+        // set up the strategy
+        strategy = await InterestEarningStrategy.new(
+            storage.address,
+            underlying.address,
+            vault.address,
+            { from: governance }
+        );
+        await vault.setStrategy(strategy.address, { from: controller });
+        assert.equal(strategy.address, await vault.strategy());
+
+        underlying.addMinter(strategy.address, { from: governance });
+
+        // two farmers, each investing the same
+        await underlying.approve(vault.address, farmerBalance, { from: farmer });
+        await vault.deposit(roundBalance, { from: farmer });
+        await underlying.mint(farmerBob, farmerBalance, { from: governance });
+        await underlying.approve(vault.address, farmerBalance, { from: farmerBob });
+        await vault.deposit(roundBalance, { from: farmerBob });
+
+        // do hard work to invest all
+        await vault.doHardWork({from: governance});
+
+        // farmer will withdraw, we will get 2x farmerBalance shares total and farmerBalance of shares
+        // as the parameters to the withdrawToVault
+        await vault.withdraw(roundBalance, {from: farmer});
+
+        assert.equal(await strategy.test_sharesWithdraw(), roundBalance);
+        Utils.assertBNEq(await strategy.test_sharesTotalWithdraw(), roundBalance * 2);
+
+        // once again with different numbers
+        await underlying.approve(vault.address, farmerBalance, { from: farmer });
+        await vault.deposit(roundBalance, { from: farmer });
+        await vault.doHardWork({from: governance});
+
+        // farmer will withdraw half, we will get 2x farmerBalance shares total and farmerBalance / 2 of shares
+        await vault.withdraw(roundBalance / 2, {from: farmer});
+        assert.equal(await strategy.test_sharesWithdraw(), roundBalance / 2);
+        Utils.assertBNEq(await strategy.test_sharesTotalWithdraw(), roundBalance * 2);
+
+        // farmer will withdraw half, we will get 1.5x farmerBalance shares total and farmerBalance / 2 of shares
+        await vault.withdraw(roundBalance / 2, {from: farmer});
+        assert.equal(await strategy.test_sharesWithdraw(), roundBalance / 2);
+        Utils.assertBNEq(await strategy.test_sharesTotalWithdraw(), roundBalance * 1.5);
+      });
     });
 
     describe("Upgradability test", function () {
       // ensures that deposits are intact after an upgrade
       // and that the strategy can no longer be changed in the upgraded vault
       // (to confirm the behavior changed after an upgrade)
+
+      // updated to upgrade VaultV2 (older version) to the current Vault (V3)
       let vault, vaultAsProxy, vaultImplementation, vaultUpgradableSoonerImpl;
       const shorterDelay = 100; // seconds
 
@@ -709,14 +888,14 @@ contract("Vault Test", function (accounts) {
         // reset token balance
         await underlying.transfer(burner, farmerBalance, { from: farmer });
         await underlying.mint(farmer, roundBalance, { from: governance });
-        assert.equal(roundBalance, await underlying.balanceOf(farmer));
+        Utils.assertBNEq(roundBalance, await underlying.balanceOf(farmer));
         await underlying.mint(farmerBob, roundBalance, { from: governance });
-        assert.equal(roundBalance, await underlying.balanceOf(farmerBob));
+        Utils.assertBNEq(roundBalance, await underlying.balanceOf(farmerBob));
 
         // deposit some tokens for one farmer, will receive 1x shares
         await underlying.approve(vault.address, roundBalance, { from: farmer });
         await vault.deposit(roundBalance, { from: farmer });
-        assert.equal(roundBalance, await vault.balanceOf(farmer));
+        Utils.assertBNEq(roundBalance, await vault.balanceOf(farmer));
 
         // okay, the balances are in. Now, scheduling upgrades
 
@@ -728,7 +907,7 @@ contract("Vault Test", function (accounts) {
           shouldUpgrade[1]
         );
 
-        newVault = await VaultStrategySwitchLock.new({
+        newVault = await Vault.new({
           from: governance,
         });
 
@@ -767,6 +946,9 @@ contract("Vault Test", function (accounts) {
           vaultImplementation.address,
           await vaultAsProxy.implementation()
         );
+
+        const oldSharePrice = await vault.getPricePerFullShare();
+
         await vaultAsProxy.upgrade({
           from: governance,
         });
@@ -774,11 +956,16 @@ contract("Vault Test", function (accounts) {
 
         /* After this, the vault should be upgraded */
         // checking that the behaviour has actually changed
+        assert.equal(false, await vault.allowSharePriceDecrease());
+        assert.equal(false, await vault.withdrawBeforeReinvesting());
+        Utils.assertBNEq(oldSharePrice, await vault.getPricePerFullShareCheckpoint());
+
+        // checking the legacy behaviour also
         await expectRevert(
           vault.setStrategy(strategy.address, {
             from: governance,
           }),
-          "Strategy change not allowed"
+          "The strategy exists and switch timelock did not elapse yet."
         );
 
         // now, shouldUpgrade is back to false
@@ -793,18 +980,18 @@ contract("Vault Test", function (accounts) {
         // The following is copy-paste from the Profit test above
 
         await vault.doHardWork({ from: controller });
-        assert.equal(roundBalance, await vault.balanceOf(farmer));
-        assert.equal(roundBalance, await vault.totalSupply());
-        assert.equal(0, await vault.underlyingBalanceInVault());
-        assert.equal(
+        Utils.assertBNEq(roundBalance, await vault.balanceOf(farmer));
+        Utils.assertBNEq(roundBalance, await vault.totalSupply());
+        Utils.assertBNEq(0, await vault.underlyingBalanceInVault());
+        Utils.assertBNEq(
           roundBalancePostGain,
           await vault.underlyingBalanceWithInvestment()
         );
-        assert.equal(
+        Utils.assertBNEq(
           roundBalancePostGain,
           await vault.underlyingBalanceWithInvestmentForHolder(farmer)
         );
-        assert.equal(
+        Utils.assertBNEq(
           Math.trunc(tokenUnit) + tokenUnit / 10,
           await vault.getPricePerFullShare()
         );
@@ -819,21 +1006,21 @@ contract("Vault Test", function (accounts) {
         let expectedShares = Math.trunc(
           roundBalance * (totalSupply / currentValue)
         );
-        assert.equal(expectedShares, await vault.balanceOf(farmerBob));
+        Utils.assertBNEq(expectedShares, await vault.balanceOf(farmerBob));
 
         // make the investment
         await vault.doHardWork({ from: controller });
-        assert.equal(expectedShares, await vault.balanceOf(farmerBob));
-        assert.equal(
+        Utils.assertBNEq(expectedShares, await vault.balanceOf(farmerBob));
+        Utils.assertBNEq(
           expectedShares + Math.trunc(roundBalance),
           await vault.totalSupply()
         );
-        assert.equal(0, await vault.underlyingBalanceInVault());
-        assert.equal(
+        Utils.assertBNEq(0, await vault.underlyingBalanceInVault());
+        Utils.assertBNEq(
           roundBalancePostGain * 2,
           await vault.underlyingBalanceWithInvestment()
         );
-        assert.equal(
+        Utils.assertBNEq(
           Math.trunc(
             (expectedShares * roundBalancePostGain * 2) /
               (expectedShares + Math.trunc(roundBalance))
@@ -843,25 +1030,25 @@ contract("Vault Test", function (accounts) {
 
         // withdraw after the investment for farmer
         await vault.withdraw(roundBalance, { from: farmer });
-        assert.equal(
+        Utils.assertBNEq(
           roundBalancePostGainFarmer,
           await underlying.balanceOf(farmer)
         );
-        assert.equal(0, await vault.balanceOf(farmer));
+        Utils.assertBNEq(0, await vault.balanceOf(farmer));
 
         // withdraw after the investment for farmerBob, the strategy eats another 10%
         await vault.withdraw(expectedShares, { from: farmerBob });
-        assert.equal(
+        Utils.assertBNEq(
           roundBalancePostGainFarmerBob,
           await underlying.balanceOf(farmerBob)
         );
-        assert.equal(0, await vault.balanceOf(farmerBob));
+        Utils.assertBNEq(0, await vault.balanceOf(farmerBob));
 
         // the vault has nothing
-        assert.equal(0, await vault.availableToInvestOut());
-        assert.equal(0, await vault.underlyingBalanceInVault());
-        assert.equal(tokenUnit, await vault.getPricePerFullShare());
-        assert.equal(
+        Utils.assertBNEq(0, await vault.availableToInvestOut());
+        Utils.assertBNEq(0, await vault.underlyingBalanceInVault());
+        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShare());
+        Utils.assertBNEq(
           0,
           await vault.underlyingBalanceWithInvestmentForHolder(farmer)
         );

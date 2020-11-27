@@ -311,7 +311,7 @@ contract("Autostaking for reward pool Test", function (accounts) {
       Utils.assertBNGt(farmer1Balance_afterFarmer2Exit, farmer1Balance_afterFarmer2Stake);
       await autostake.exit({ from: farmer1 });
       let farmer1RealBalance = await rewardToken.balanceOf(farmer1);
-      Utils.assertBNEq(farmer1Balance_afterFarmer2Exit, farmer1RealBalance);
+      Utils.assertBNGte(farmer1RealBalance, farmer1Balance_afterFarmer2Exit);
     });
 
     it("refreshAutoStake helps stacking up the stake", async function () {

@@ -130,11 +130,14 @@ contract("Curve Strategy YCRV Unit Test", function (accounts) {
       let farmerOldBalance = new BigNumber(await ycrv.balanceOf(farmer1));
       await depositVault(farmer1, ycrv, ycrvVault, farmerBalance);
       await Utils.advanceNBlock(100);
-      await controller.doHardWork(ycrvVault.address, {from : governance});
+      let hint = await controller.getPricePerFullShare(ycrvVault.address);
+      await controller.doHardWork(ycrvVault.address, hint, 100, 100, {from : governance});
       await Utils.advanceNBlock(100);
-      await controller.doHardWork(ycrvVault.address, {from : governance});
+      hint = await controller.getPricePerFullShare(ycrvVault.address);
+      await controller.doHardWork(ycrvVault.address, hint, 100, 100, {from : governance});
       await Utils.advanceNBlock(100);
-      await controller.doHardWork(ycrvVault.address, {from : governance});
+      hint = await controller.getPricePerFullShare(ycrvVault.address);
+      await controller.doHardWork(ycrvVault.address, hint, 100, 100, {from : governance});
       await ycrvVault.withdraw(farmerBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await ycrv.balanceOf(farmer1));
       Utils.assertBNEq(farmerNewBalance, farmerOldBalance);

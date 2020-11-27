@@ -41,7 +41,7 @@ contract.skip("Compound Strategy Test", function (accounts) {
       // fund to be able to borrow and give interest
       await underlying.mint(ctoken.address, million, { from: owner });
       storage = await Storage.new({ from: governance });
-      let feeRewardForwarder = await FeeRewardForwarder.new(storage.address, { from: governance });
+      let feeRewardForwarder = await FeeRewardForwarder.new(storage.address, underlying.address, underlying.address, { from: governance });
       controller = await Controller.new(storage.address, feeRewardForwarder.address, { from: governance });
 
       await storage.setController(controller.address, { from: governance });

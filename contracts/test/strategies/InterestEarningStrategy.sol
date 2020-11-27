@@ -74,7 +74,8 @@ contract InterestEarningStrategy is IStrategyV2, Controllable {
   /*
   * Cashes some amount out and withdraws to the vault
   */
-  function withdrawToVault(uint256 amount, uint256 shares, uint256 sharesTotal) external onlyVault {
+  function withdrawToVault(uint256 shares, uint256 sharesTotal) external onlyVault {
+    uint256 amount = underlying.balanceOf(address(this)).mul(shares).div(sharesTotal);
     test_amountWithdraw = amount;
     test_sharesTotalWithdraw = sharesTotal;
     test_sharesWithdraw = shares;

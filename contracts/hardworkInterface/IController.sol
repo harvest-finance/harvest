@@ -14,7 +14,7 @@ interface IController {
     function greyList(address _target) external view returns(bool);
 
     function addVaultAndStrategy(address _vault, address _strategy) external;
-    function doHardWork(address _vault) external;
+    function doHardWork(address _vault, uint256 hint, uint256 devianceNumerator, uint256 devianceDenominator) external;
     function hasVault(address _vault) external returns(bool);
 
     function salvage(address _token, uint256 amount) external;

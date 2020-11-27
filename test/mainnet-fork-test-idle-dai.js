@@ -7,7 +7,7 @@ if ( process.env.MAINNET_FORK ) {
   const BigNumber = require('bignumber.js');
   const Controller = artifacts.require("Controller");
   const Storage = artifacts.require("Storage");
-  const IdleStrategyDaiMainnet = artifacts.require("IdleStrategyDaiMainnet");
+  const IdleStrategyDAIMainnet = artifacts.require("IdleStrategyDAIMainnet");
   const Vault = artifacts.require("Vault");
   const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
   const makeVault = require("./make-vault.js");
@@ -71,7 +71,7 @@ if ( process.env.MAINNET_FORK ) {
         vault = await Vault.at("0xab7fa2b2985bccfc13c6d86b1d5a17486ab1e04c");
 
         // set up the strategy
-        strategy = await IdleStrategyDaiMainnet.new(
+        strategy = await IdleStrategyDAIMainnet.new(
           storage.address,
           vault.address,
           { from: governance }

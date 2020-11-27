@@ -144,7 +144,8 @@ contract("Controller Test", function (accounts) {
         from: governance,
       });
       // improve the second strategy and trigger a re-invest
-      await controller.doHardWork(vault.address, { from: hardWorker });
+      let hint = await controller.getPricePerFullShare(vault.address);
+      await controller.doHardWork(vault.address, hint, 100, 100, { from: hardWorker });
 
       await controller.removeHardWorker(hardWorker, {
         from: governance,

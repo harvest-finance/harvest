@@ -243,6 +243,7 @@ contract DEGOSimpleStrategy is IStrategy, Controllable, ProfitNotifier {
     // The second part is needed because there is the emergency exit mechanism
     // which would break the assumption that all the funds are always inside of the reward pool
     return rewardPool.balanceOf(address(this)).add(underlying.balanceOf(address(this)));
+    // todo: add loan!
   }
 
   /*

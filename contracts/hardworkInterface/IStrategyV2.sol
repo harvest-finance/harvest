@@ -10,7 +10,7 @@ interface IStrategyV2 {
     function vault() external view returns (address);
 
     function withdrawAllToVault() external;
-    function withdrawToVault(uint256 amount, uint256 correspondingShares, uint256 totalShares) external;
+    function withdrawToVault(uint256 correspondingShares, uint256 totalShares) external;
 
     function investedUnderlyingBalance() external view returns (uint256); // itsNotMuch()
 

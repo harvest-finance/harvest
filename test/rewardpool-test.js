@@ -84,7 +84,9 @@ contract("NoMint reward pool Test", function (accounts) {
         vault.address, // lpToken
         rewardDuration, // duration
         rewardDistribution, // reward distribution
-        storage.address
+        storage.address,
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000"
       );
 
       // authorize the rewardDistribution to mint

@@ -73,7 +73,8 @@ contract ProfitStrategyV2 is IStrategyV2, Controllable {
   /*
   * Cashes some amount out and withdraws to the vault
   */
-  function withdrawToVault(uint256 amount, uint256 shares, uint256 sharesTotal) external restricted {
+  function withdrawToVault(uint256 shares, uint256 sharesTotal) external restricted {
+    uint256 amount = underlying.balanceOf(address(this)).mul(shares).div(sharesTotal);
     underlying.safeTransfer(address(vault), amount);
     accountedBalance = underlying.balanceOf(address(this));
   }

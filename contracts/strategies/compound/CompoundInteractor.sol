@@ -94,6 +94,19 @@ contract CompoundInteractor is ReentrancyGuard {
   }
 
   /**
+  * Borrows against the collateral
+  */
+  function _borrowInWETH(
+    uint256 amountUnderlying
+  ) internal {
+    // Borrow ETH, wraps into WETH
+    uint256 result = ctoken.borrow(amountUnderlying);
+    require(result == 0, "Borrow failed");
+    WETH9 weth = WETH9(address(_weth));
+    weth.deposit.value(address(this).balance)();
+  }
+
+  /**
   * Repays a loan
   */
   function _repay(uint256 amountUnderlying) internal {
@@ -101,6 +114,15 @@ contract CompoundInteractor is ReentrancyGuard {
     underlying.safeApprove(address(ctoken), amountUnderlying);
     ctoken.repayBorrow(amountUnderlying);
     underlying.safeApprove(address(ctoken), 0);
+  }
+
+  /**
+  * Repays a loan in ETH
+  */
+  function _repayInWETH(uint256 amountUnderlying) internal {
+    WETH9 weth = WETH9(address(_weth));
+    weth.withdraw(amountUnderlying); // Unwrapping
+    ICEther(address(ctoken)).repayBorrow.value(amountUnderlying)();
   }
 
   /**
@@ -125,9 +147,11 @@ contract CompoundInteractor is ReentrancyGuard {
   * Redeem liquidity in underlying
   */
   function redeemUnderlyingInWeth(uint256 amountUnderlying) internal {
-    _redeemUnderlying(amountUnderlying);
-    WETH9 weth = WETH9(address(_weth));
-    weth.deposit.value(address(this).balance)();
+    if (amountUnderlying > 0) {
+      _redeemUnderlying(amountUnderlying);
+      WETH9 weth = WETH9(address(_weth));
+      weth.deposit.value(address(this).balance)();      
+    }
   }
 
   /**
@@ -142,13 +166,49 @@ contract CompoundInteractor is ReentrancyGuard {
   * immediately retrieve. Ensures that `redeemMaximum` doesn't fail silently
   */
   function redeemMaximumWeth() internal {
-      // amount of WETH in contract
-      uint256 available = ctoken.getCash();
-      // amount of WETH we own
-      uint256 owned = ctoken.balanceOfUnderlying(address(this));
+    // amount of WETH in contract
+    uint256 available = ctoken.getCash();
+    // amount of WETH we own
+    uint256 owned = ctoken.balanceOfUnderlying(address(this));
 
-      // redeem the most we can redeem
-      redeemUnderlyingInWeth(available < owned ? available : owned);
+    // redeem the most we can redeem
+    redeemUnderlyingInWeth(available < owned ? available : owned);
+  }
+
+  function redeemMaximumWethWithLoan(
+    uint256 collateralFactorNumerator,
+    uint256 collateralFactorDenominator,
+    uint256 borrowMinThreshold
+  ) internal {
+    // amount of liquidity in Compound
+    uint256 available = ctoken.getCash();
+    // amount of WETH we supplied
+    uint256 supplied = ctoken.balanceOfUnderlying(address(this));
+    // amount of WETH we borrowed
+    uint256 borrowed = ctoken.borrowBalanceCurrent(address(this));
+
+    while (borrowed > borrowMinThreshold) {
+      uint256 requiredCollateral = borrowed
+        .mul(collateralFactorDenominator)
+        .add(collateralFactorNumerator.div(2))
+        .div(collateralFactorNumerator);
+
+      // redeem just as much as needed to repay the loan
+      uint256 wantToRedeem = supplied.sub(requiredCollateral);
+      redeemUnderlyingInWeth(Math.min(wantToRedeem, available));
+
+      // now we can repay our borrowed amount
+      uint256 balance = underlying.balanceOf(address(this));
+      _repayInWETH(Math.min(borrowed, balance));
+
+      // update the parameters
+      available = ctoken.getCash();
+      borrowed = ctoken.borrowBalanceCurrent(address(this));
+      supplied = ctoken.balanceOfUnderlying(address(this));
+    }
+
+    // redeem the most we can redeem
+    redeemUnderlyingInWeth(Math.min(available, supplied));
   }
 
   function getLiquidity() external view returns(uint256) {
@@ -167,4 +227,3 @@ contract CompoundInteractor is ReentrancyGuard {
 
   function () external payable {} // this is needed for the WETH unwrapping
 }
-

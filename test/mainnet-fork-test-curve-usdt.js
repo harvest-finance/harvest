@@ -77,7 +77,7 @@ if (process.env.MAINNET_FORK) {
         // deploy storage
         storage = await Storage.new({ from: governance });
 
-        feeRewardForwarder = await FeeRewardForwarder.new(storage.address, MFC.UNISWAP_V2_ROUTER02_ADDRESS, { from: governance });
+        feeRewardForwarder = await FeeRewardForwarder.new(storage.address, usdt.address, MFC.UNISWAP_V2_ROUTER02_ADDRESS, { from: governance });
 
         // set up controller
         controller = await Controller.new(storage.address, feeRewardForwarder.address, {
