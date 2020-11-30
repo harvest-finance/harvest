@@ -7,6 +7,7 @@ const Storage = artifacts.require("Storage");
 const HardRewards = artifacts.require("HardRewards");
 const makeVault = require("./make-vault.js");
 const { waitHours } = require("./Utils.js");
+const BigNumber = require('bignumber.js');
 
 contract("Controller Test", function (accounts) {
   describe("Deposit and Withdraw", function () {
@@ -189,6 +190,28 @@ contract("Controller Test", function (accounts) {
         { from: governance }
       );
       assert.equal(farmerBalance, await underlying.balanceOf(governance));
+    });
+
+    it("doHardWork fails on wrong hint", async function () {
+      let hint = new BigNumber(await controller.getPricePerFullShare(vault.address));
+      await expectRevert(
+        controller.doHardWork(vault.address, hint.plus(new BigNumber("1")), 100, 100, { from: governance }),
+        "share price deviation"
+      );
+      await expectRevert(
+        controller.doHardWork(vault.address, hint.minus(new BigNumber("1")), 100, 100, { from: governance }),
+        "share price deviation"
+      );
+      await expectRevert(
+        controller.doHardWork(vault.address, hint.multipliedBy(new BigNumber("94")).dividedBy(new BigNumber("100")), 95, 100, { from: governance }),
+        "share price deviation"
+      );
+      await expectRevert(
+        controller.doHardWork(vault.address, hint.multipliedBy(new BigNumber("106")).dividedBy(new BigNumber("100")), 95, 100, { from: governance }),
+        "share price deviation"
+      );
+      // no fail to confirm that passing is possible
+      controller.doHardWork(vault.address, hint, 100, 100, { from: governance });
     });
   });
 });
