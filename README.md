@@ -37,7 +37,7 @@ FARM token: <br />
 | Vault    |      Lock Token      |  You Receive Instead | Vault Contract Address |
 |-----------|:----------------------|:--------------|:--------------:|
 | WETH | WETH | fWETH | [0xFE09e53A81Fe2808bc493ea64319109B5bAa573e](https://etherscan.io/address/0xFE09e53A81Fe2808bc493ea64319109B5bAa573e) |
-| DAI Vault | DAI | fDAI | [0xab7fa2b2985bccfc13c6d86b1d5a17486ab1e04c](https://etherscan.io/address/0xab7fa2b2985bccfc13c6d86b1d5a17486ab1e04c) |
+| DAI Vault | DAI | fDAI | [0xab7FA2B2985BCcfC13c6D86b1D5A17486ab1e04C](https://etherscan.io/address/0xab7fa2b2985bccfc13c6d86b1d5a17486ab1e04c) |
 | USDC Vault | USDC | fUSDC| [0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE](https://etherscan.io/address/0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE) |
 | USDT Vault | USDT | fUSDT | [0x053c80eA73Dc6941F518a68E2FC52Ac45BDE7c9C](https://etherscan.io/address/0x053c80eA73Dc6941F518a68E2FC52Ac45BDE7c9C) |
 | TUSD Vault | TUSD | fTUSD | [0x7674622c63Bee7F46E86a4A5A18976693D54441b](https://etherscan.io/address/0x7674622c63bee7f46e86a4a5a18976693d54441b) |
