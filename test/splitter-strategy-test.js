@@ -5,10 +5,13 @@ const Controller = artifacts.require("Controller");
 const MockToken = artifacts.require("MockToken");
 const Storage = artifacts.require("Storage");
 const SplitterStrategy = artifacts.require("SplitterStrategy");
+const SplitterProxy = artifacts.require("SplitterProxy");
+const SplitterStrategyWhitelist = artifacts.require("SplitterStrategyWhitelist");
+const SplitterConfig = artifacts.require("SplitterConfig");
+const SplitterStrategyUpgradedTestOnly = artifacts.require("SplitterStrategyUpgradedTestOnly");
 
-//const CRVStrategyStableMainnet = artifacts.require("CRVStrategyStableMainnet");
 // Mocks
-const NoopStrategy = artifacts.require("NoopStrategy");
+const NoopStrategyV2 = artifacts.require("NoopStrategyV2");
 const makeVault = require("./make-vault.js");
 
 // ERC20 interface
@@ -16,7 +19,7 @@ const makeVault = require("./make-vault.js");
 
 BigNumber.config({ DECIMAL_PLACES: 0 });
 
-contract.skip("Splitter Strategy Unit Tests", function (accounts) {
+contract("Splitter Strategy Unit Tests", function (accounts) {
   describe("Splitter Strategy", function () {
     // external contracts
     let dai;
@@ -26,14 +29,14 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
     let rewardCollector = accounts[2];
     let farmer1 = accounts[3];
     let farmer2 = accounts[4];
-    let strategyCaps = ["50000" + "000000000000000000",
-                        "20000" + "000000000000000000"];
 
     let strategy1;
     let strategy2;
+    let strategy3;
     let daiVault;
-    let investmentRatioNumerators = ["2500", // 25%
-                                      "7500" // 75%
+    let investmentRatioNumerators = [ "2500", // 25%
+                                      "4000", // 40%
+                                      "1500"  // 15%. The rest will remain in splitter
                                     ]
 
     // numbers used in tests
@@ -44,6 +47,7 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
     let storage;
     let controller;
     let splitter;
+    let splitterImpl;
 
     async function resetDaiBalance() {
       // reset token balance
@@ -79,36 +83,52 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
         from: governance,
       });
 
-      splitter = await SplitterStrategy.new(
-        storage.address
-      );
+      splitterImpl = await SplitterStrategy.new();
+      const splitterProxy = await SplitterProxy.new(splitterImpl.address);
+      splitter = await SplitterStrategy.at(splitterProxy.address);
 
-      // set up the strategies
-      strategy1 = await NoopStrategy.new(
-        storage.address,
-        dai.address,
-        splitter.address,
-        { from: governance }
-      );
-
-      strategy2 = await NoopStrategy.new(
-        storage.address,
-        dai.address,
-        splitter.address,
-        { from: governance }
-      );
+      const strategyWhitelist = await SplitterStrategyWhitelist.new(splitter.address);
+      const splitterConfig = await SplitterConfig.new(splitter.address);
 
       await splitter.initSplitter(
-        dai.address,
+        storage.address,
         daiVault.address,
-        [strategy1.address, strategy2.address],
-        investmentRatioNumerators,
-        strategyCaps,
-        [strategy2.address, strategy1.address], // reverse withdrawal order
+        strategyWhitelist.address,
+        splitterConfig.address,
         {
           from: governance
         }
-      )
+      );
+
+      // set up the strategies
+      strategy1 = await NoopStrategyV2.new(
+        storage.address,
+        dai.address,
+        splitter.address,
+        { from: governance }
+      );
+
+      strategy2 = await NoopStrategyV2.new(
+        storage.address,
+        dai.address,
+        splitter.address,
+        { from: governance }
+      );
+
+      strategy3 = await NoopStrategyV2.new(
+        storage.address,
+        dai.address,
+        splitter.address,
+        { from: governance }
+      );
+
+      await splitter.initStrategies(
+        [strategy1.address, strategy2.address, strategy3.address],
+        investmentRatioNumerators,
+        {
+          from: governance
+        }
+      );
 
       // link vaults with strategies
       await controller.addVaultAndStrategy(
@@ -116,7 +136,6 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
         splitter.address,
         { from: governance }
       );
-
     }
 
     beforeEach(async function () {
@@ -131,15 +150,14 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
       assert.equal(_amount, await _vault.balanceOf(_farmer));
     }
 
-    it("Investment ratios and caps are enforced", async function () {
-//      let farmerOldBalance = new BigNumber(await dai.balanceOf(farmer1));
+    it("Investment ratios are enforced", async function () {
       await depositVault(farmer1, dai, daiVault, farmerBalance1);
       await depositVault(farmer2, dai, daiVault, farmerBalance2);
 
       Utils.assertBNEq(new BigNumber(0), await splitter.investedUnderlyingBalance());
 
       // doing hard work to push the money
-      await controller.doHardWork(daiVault.address, {from : governance});
+      await daiVault.doHardWork({from : governance});
 
       const totalContribution = new BigNumber(farmerBalance1).plus(farmerBalance2);
 
@@ -158,61 +176,83 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
       Utils.assertBNEq(
         totalContribution.times(0.25), // only 25% goes into the first strategy
         await strategy1.investedUnderlyingBalance(),
-      )
+      );
 
       Utils.assertBNEq(
-        strategyCaps[1], // strategy 2 would reach the cap
+        totalContribution.times(0.4), // 40% goes into the second strategy
         await strategy2.investedUnderlyingBalance(),
-      )
+      );
 
       Utils.assertBNEq(
-        // the rest stays in the splitter itself
+        totalContribution.times(0.15), // 15% goes into the third strategy
+        await strategy3.investedUnderlyingBalance(),
+      );
+
+      Utils.assertBNEq(
+        // the rest remains in the splitter itself
         totalContribution
           .minus(await strategy1.investedUnderlyingBalance())
-          .minus(await strategy2.investedUnderlyingBalance()),
+          .minus(await strategy2.investedUnderlyingBalance())
+          .minus(await strategy3.investedUnderlyingBalance()),
 
         await dai.balanceOf(splitter.address),
-      )
+      );
 
+      // checking the balances of each farmer
       Utils.assertBNEq(
         farmerBalance1,
         await daiVault.underlyingBalanceWithInvestmentForHolder(farmer1),
-      )
+      );
 
       Utils.assertBNEq(
         farmerBalance2,
         await daiVault.underlyingBalanceWithInvestmentForHolder(farmer2),
-      )
+      );
     });
 
-    it("Withdraw order is enforced", async function () {
+    it("Withdrawals are proportional", async function () {
       await depositVault(farmer1, dai, daiVault, farmerBalance1);
       await depositVault(farmer2, dai, daiVault, farmerBalance2);
 
       Utils.assertBNEq(new BigNumber(0), await splitter.investedUnderlyingBalance());
 
       // doing hard work to push the money
-      await controller.doHardWork(daiVault.address, {from : governance});
+      await daiVault.doHardWork({from : governance});
+      const totalContribution = new BigNumber(farmerBalance1).plus(farmerBalance2);
 
-      // make sure that withdrawal comes from the second strategy
-      Utils.assertBNEq(
-        await strategy2.investedUnderlyingBalance(),
-        strategyCaps[1]
-      );
-      await daiVault.withdraw(strategyCaps[1], { from: farmer1 });
+      const withdrawalAmount1 = "20000" + "000000000000000000"; // 0.2 of the total
 
-      // should empty strategy2 but immediately re-invest the slack, leading to:
+      await daiVault.withdraw(withdrawalAmount1,  { from: farmer1 });
+
+      // now checking each strategy
       Utils.assertBNEq(
-        await strategy2.investedUnderlyingBalance(),
-        "20000" + "000000000000000000"
+        await strategy1.investedUnderlyingBalance(),
+        totalContribution.times(0.25).times(0.8)
       );
 
-      // withdraw the rest of farmer 1 balance:
+      Utils.assertBNEq(
+        await strategy2.investedUnderlyingBalance(),
+        totalContribution.times(0.40).times(0.8)
+      );
 
-      Utils.assertBNEq(strategyCaps[1], await dai.balanceOf(farmer1));
-      await daiVault.withdraw("10000" + "000000000000000000", { from: farmer1 });
+      Utils.assertBNEq(
+        await strategy3.investedUnderlyingBalance(),
+        totalContribution.times(0.15).times(0.8)
+      );
+
+      Utils.assertBNEq(
+        totalContribution.times(0.20).times(0.8),
+        await dai.balanceOf(splitter.address),
+      );
+
+      // check how much farmer1 actually got
+      Utils.assertBNEq(withdrawalAmount1, await dai.balanceOf(farmer1));
+
+      // withdraw the rest
+      const withdrawalAmount2 = "10000" + "000000000000000000";
+      await daiVault.withdraw(withdrawalAmount2, { from: farmer1 });
       await daiVault.withdraw(farmerBalance2, { from: farmer2 });
-      await daiVault.withdraw("20000" + "000000000000000000", { from: farmer1 });
+      await daiVault.withdraw(await daiVault.balanceOf(farmer1), { from: farmer1 });
 
       // after the second withdrawal, strategies should be empty
       Utils.assertBNEq(
@@ -223,6 +263,15 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
         await strategy2.investedUnderlyingBalance(),
         "0"
       );
+      Utils.assertBNEq(
+        await strategy3.investedUnderlyingBalance(),
+        "0"
+      );
+
+      Utils.assertBNEq(
+        "0",
+        await dai.balanceOf(splitter.address),
+      );
 
       Utils.assertBNEq(farmerBalance1, await dai.balanceOf(farmer1));
       Utils.assertBNEq(farmerBalance2, await dai.balanceOf(farmer2));
@@ -231,33 +280,41 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
     describe("Unwhitelisting", function () {
       it("Unwhitelists an empty strategy at the beginning/middle of the list", async function () {
         Utils.assertBNEq(
-          2,
+          3,
           await splitter.whitelistedStrategyCount(),
         );
         await splitter.unwhitelistStrategy(strategy1.address, {from: governance});
         Utils.assertBNEq(
-          1,
+          2,
           await splitter.whitelistedStrategyCount(),
         );
         assert.equal(
-          strategy2.address,
+          strategy3.address,
           await splitter.whitelistedStrategies(0),
+        );
+        assert.equal(
+          strategy2.address,
+          await splitter.whitelistedStrategies(1),
         );
       });
 
       it("Unwhitelists an empty strategy at the end of the list", async function () {
         Utils.assertBNEq(
-          2,
+          3,
           await splitter.whitelistedStrategyCount(),
         );
-        await splitter.unwhitelistStrategy(strategy2.address, {from: governance});
+        await splitter.unwhitelistStrategy(strategy3.address, {from: governance});
         Utils.assertBNEq(
-          1,
+          2,
           await splitter.whitelistedStrategyCount(),
         );
         assert.equal(
           strategy1.address,
           await splitter.whitelistedStrategies(0),
+        );
+        assert.equal(
+          strategy2.address,
+          await splitter.whitelistedStrategies(1),
         );
       });
 
@@ -265,7 +322,7 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
         await depositVault(farmer1, dai, daiVault, farmerBalance1);
 
         // doing hard work to push the money
-        await controller.doHardWork(daiVault.address, {from : governance});
+        await daiVault.doHardWork({from : governance});
 
         await expectRevert(
           splitter.unwhitelistStrategy(strategy1.address, {
@@ -282,14 +339,14 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
 
     describe("Whitelisting", function () {
       it("Does not whitelist an incompatible strategy", async function () {
-        const strategy3 = await NoopStrategy.new(
+        const strategy4 = await NoopStrategyV2.new(
           storage.address,
           daiVault.address, // just a different underlying
           daiVault.address,
           { from: governance }
         );
         await expectRevert(
-          splitter.announceStrategyWhitelist(strategy3.address, {
+          splitter.announceStrategyWhitelist(strategy4.address, {
             from: governance,
           }),
           "Underlying of splitter must match Strategy underlying"
@@ -297,14 +354,14 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
       });
 
       it("Does not whitelist an alien strategy", async function () {
-        const strategy3 = await NoopStrategy.new(
+        const strategy4 = await NoopStrategyV2.new(
           storage.address,
           dai.address,
           daiVault.address,
           { from: governance }
         );
         await expectRevert(
-          splitter.announceStrategyWhitelist(strategy3.address, {
+          splitter.announceStrategyWhitelist(strategy4.address, {
             from: governance,
           }),
           "The strategy does not belong to this splitter"
@@ -321,18 +378,18 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
       });
 
       it("Does not whitelist a legit strategy prior to the timelock expiry", async function () {
-        const strategy3 = await NoopStrategy.new(
+        const strategy4 = await NoopStrategyV2.new(
           storage.address,
           dai.address,
           splitter.address,
           { from: governance }
         );
-        await splitter.announceStrategyWhitelist(strategy3.address, {
+        await splitter.announceStrategyWhitelist(strategy4.address, {
           from: governance,
         });
 
         await expectRevert(
-          splitter.whitelistStrategy(strategy3.address, {
+          splitter.whitelistStrategy(strategy4.address, {
             from: governance,
           }),
           "The strategy exists and switch timelock did not elapse yet"
@@ -340,24 +397,13 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
       });
 
       it("Whitelists a legit strategy after the timelock expiry", async function () {
-        const strategy3 = await NoopStrategy.new(
+        const strategy4 = await NoopStrategyV2.new(
           storage.address,
           dai.address,
           splitter.address,
           { from: governance }
         );
-        await splitter.announceStrategyWhitelist(strategy3.address, {
-          from: governance,
-        });
-
-        Utils.assertBNEq(
-          2,
-          await splitter.whitelistedStrategyCount(),
-        );
-
-        await Utils.waitHours(12);
-
-        await splitter.whitelistStrategy(strategy3.address, {
+        await splitter.announceStrategyWhitelist(strategy4.address, {
           from: governance,
         });
 
@@ -365,9 +411,20 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
           3,
           await splitter.whitelistedStrategyCount(),
         );
+
+        await Utils.waitHours(12);
+
+        await splitter.whitelistStrategy(strategy4.address, {
+          from: governance,
+        });
+
+        Utils.assertBNEq(
+          4,
+          await splitter.whitelistedStrategyCount(),
+        );
         assert.equal(
-          strategy3.address,
-          await splitter.whitelistedStrategies(2),
+          strategy4.address,
+          await splitter.whitelistedStrategies(3),
         );
       });
     });
@@ -378,12 +435,7 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
         await depositVault(farmer2, dai, daiVault, farmerBalance2);
 
         // doing hard work to push the money
-        await controller.doHardWork(daiVault.address, {from : governance});
-
-        Utils.assertBNEq(
-          strategyCaps[1], // strategy2 should reach the cap by now
-          await strategy2.investedUnderlyingBalance()
-        );
+        await daiVault.doHardWork({from : governance});
 
         // check the total invariant
         const totalContribution = new BigNumber(farmerBalance1).plus(farmerBalance2);
@@ -396,29 +448,26 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
           await splitter.investedUnderlyingBalance()
         );
 
-        const strategy3 = await NoopStrategy.new(
+        const strategy4 = await NoopStrategyV2.new(
           storage.address,
           dai.address,
           splitter.address,
           { from: governance }
         );
-        await splitter.announceStrategyWhitelist(strategy3.address, {
+        await splitter.announceStrategyWhitelist(strategy4.address, {
           from: governance,
         });
 
         await Utils.waitHours(12);
 
-        await splitter.whitelistStrategy(strategy3.address, {
+        await splitter.whitelistStrategy(strategy4.address, {
           from: governance,
         });
 
-        await splitter.configureStrategies(
-          [strategy3.address, strategy1.address], // strategy2 no longer active
-          [5000, 5000],
-          [0, 0], // no strategies are capped at this point
-          [strategy2.address, strategy1.address, strategy3.address],
-          // strategy2 is still included here for withdrawal order
-          // but will be phased out
+        // this adds strategy4 to the list
+        await splitter.reconfigureStrategies(
+          [strategy3.address, strategy1.address, strategy2.address, strategy4.address],
+          [1000, 2000, 3000, 1000],
           { from: governance }
         );
 
@@ -432,6 +481,10 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
           await splitter.investedUnderlyingBalance()
         );
 
+        // do some withdrawals
+        await daiVault.withdraw("40000" + "000000000000000000", { from: farmer1 });
+        await daiVault.withdraw("40000" + "000000000000000000", { from: farmer2 });
+
         // unwhitelisting is not allowed because funds are still present
         await expectRevert(
           splitter.unwhitelistStrategy(strategy2.address, {
@@ -440,26 +493,19 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
           "can only unwhitelist an empty strategy"
         );
 
-        // Withdraw. strategy2 should be drained before strategy1 as per the withdrawal order
-        // basically, the order would be: the splitter's buffer -> strategy2 -> strategy1
-        await daiVault.withdraw("40000" + "000000000000000000", { from: farmer1 });
-        await daiVault.withdraw("40000" + "000000000000000000", { from: farmer2 });
-        Utils.assertBNEq(
-          // strategy2 should have 0 by now, nothing gets re-invested into it
-          await strategy2.investedUnderlyingBalance(),
-          "0"
-        );
+        // next, withdraw from strategy2
+        await splitter.withdrawFromStrategy(strategy2.address, "100", "100", {from: governance});
+
+        // invest some of the splitter's balance into strategy3
+        await splitter.investIntoStrategy(strategy3.address, "2000" + "000000000000000000", {from: governance});
 
         // now, can un-whitelist strategy2
         await splitter.unwhitelistStrategy(strategy2.address, {from: governance});
 
         // now, can adjust the withdraw order (if necessary) to exclude the old strategy
-        await splitter.configureStrategies(
-          [strategy3.address, strategy1.address],
-          [5000, 5000],
-          [0, 0],
-          [strategy1.address, strategy3.address],
-          // strategy2 is no longer included
+        await splitter.reconfigureStrategies(
+          [strategy3.address, strategy1.address, strategy4.address],
+          [5000, 1000, 1000],
           { from: governance }
         );
 
@@ -470,7 +516,7 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
         await dai.approve(daiVault.address, "40000" + "000000000000000000", { from: farmer2 });
         await daiVault.deposit("40000" + "000000000000000000", { from: farmer2 });
 
-        await controller.doHardWork(daiVault.address, {from : governance});
+        await daiVault.doHardWork({from : governance});
         // re-check the total invariant
         Utils.assertBNEq(
           totalContribution,
@@ -478,6 +524,95 @@ contract.skip("Splitter Strategy Unit Tests", function (accounts) {
         );
         Utils.assertBNEq(
           totalContribution,
+          await splitter.investedUnderlyingBalance()
+        );
+
+        // now, just withdrawing all to vault (for the sake of testing)
+        await splitter.withdrawAllToVault({from: governance});
+
+        Utils.assertBNEq(
+          totalContribution,
+          await daiVault.underlyingBalanceWithInvestment()
+        );
+
+        Utils.assertBNEq(
+          "0",
+          await splitter.investedUnderlyingBalance()
+        );
+      });
+    });
+
+    describe("Upgradeability", function() {
+      it("Preserves the state after an upgrade", async function () {
+        await depositVault(farmer1, dai, daiVault, farmerBalance1);
+        await depositVault(farmer2, dai, daiVault, farmerBalance2);
+
+        // doing hard work to push the money
+        await daiVault.doHardWork({from : governance});
+
+        // check the total invariant
+        const totalContribution = new BigNumber(farmerBalance1).plus(farmerBalance2);
+        Utils.assertBNEq(
+          totalContribution,
+          await daiVault.underlyingBalanceWithInvestment()
+        );
+
+        const newImpl = await SplitterStrategyUpgradedTestOnly.new({from : governance});
+
+        await splitter.scheduleUpgrade(newImpl.address, {
+          from: governance,
+        });
+
+        await Utils.waitHours(12);
+
+        const splitterAsProxy = await SplitterProxy.at(splitter.address);
+        assert.equal(await splitterAsProxy.implementation(), splitterImpl.address);
+        await splitterAsProxy.upgrade({ from: governance });
+        assert.equal(await splitterAsProxy.implementation(), newImpl.address);
+
+        // re-check the total invariant
+        // this would basically confirm that addresses have been preserved
+        Utils.assertBNEq(
+          totalContribution,
+          await daiVault.underlyingBalanceWithInvestment()
+        );
+        Utils.assertBNEq(
+          totalContribution,
+          await splitter.investedUnderlyingBalance()
+        );
+
+        // do some withdrawals
+        await daiVault.withdraw("40000" + "000000000000000000", { from: farmer1 });
+        await daiVault.withdraw("40000" + "000000000000000000", { from: farmer2 });
+
+        // re-deposit
+        await dai.approve(daiVault.address, "40000" + "000000000000000000", { from: farmer1 });
+        await daiVault.deposit("40000" + "000000000000000000", { from: farmer1 });
+
+        await dai.approve(daiVault.address, "40000" + "000000000000000000", { from: farmer2 });
+        await daiVault.deposit("40000" + "000000000000000000", { from: farmer2 });
+
+        await daiVault.doHardWork({from : governance});
+        // re-check the total invariant
+        Utils.assertBNEq(
+          totalContribution,
+          await daiVault.underlyingBalanceWithInvestment()
+        );
+        Utils.assertBNEq(
+          totalContribution,
+          await splitter.investedUnderlyingBalance()
+        );
+
+        // now, just withdrawing all to vault (for the sake of testing)
+        await splitter.withdrawAllToVault({from: governance});
+
+        Utils.assertBNEq(
+          totalContribution,
+          await daiVault.underlyingBalanceWithInvestment()
+        );
+
+        Utils.assertBNEq(
+          "0",
           await splitter.investedUnderlyingBalance()
         );
       });
