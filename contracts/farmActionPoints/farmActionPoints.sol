@@ -70,6 +70,7 @@ contract Owned {
 
     function transferOwnership(address _newOwner) public onlyOwner {
         newOwner = _newOwner;
+    }
     function acceptOwnership() public {
         require(msg.sender == newOwner);
         emit OwnershipTransferred(owner, newOwner);
