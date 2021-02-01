@@ -19,11 +19,11 @@
     "url": "https://github.com/harvest-finance/harvest/issues"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^2.5.1",
+    "@openzeppelin/contracts": "^2.5.0",
     "@openzeppelin/contracts-ethereum-package": "^2.5.0",
     "@openzeppelin/upgrades": "^2.8.0",
-    "@studydefi/money-legos": "^2.4.1",
-    "@truffle/hdwallet-provider": "^1.0.42",
+    "@studydefi/money-legos": "^2.3.7",
+    "@truffle/hdwallet-provider": "1.0.42",
     "dotenv": "^8.2.0",
     "ganache-cli": "^6.10.1",
     "prettier": "^2.0.5",
@@ -33,6 +33,6 @@
   },
   "homepage": "https://github.com/harvest-finance/harvest#readme",
   "devDependencies": {
-    "@openzeppelin/test-helpers": "^0.5.10"
+    "@openzeppelin/test-helpers": "^0.5.6"
   }
 }
