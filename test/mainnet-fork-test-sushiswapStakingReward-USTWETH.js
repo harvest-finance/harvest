@@ -19,7 +19,7 @@ if ( process.env.MAINNET_FORK ) {
   // UniswapV2 Router
   const UniswapV2Router02 = artifacts.require("IUniswapV2Router02");
 
-  BigNumber.config({DECIMAL_PLACES: 10});
+  BigNumber.config({DECIMAL_PLACES: 8});
 
   contract("Mainnet Sushiswap Staking Reward", function(accounts){
     function test(vaultId, tokens, whales, sushiPoolId, sushiLPAddress, tokenLiquidationPaths){
@@ -79,7 +79,7 @@ if ( process.env.MAINNET_FORK ) {
             const info = await cropPool.userInfo(poolID, address);
             return info.amount;
           }
-          console.log("External setup finished")
+          // console.log("External setup finished")
         }
 
         async function resetBalance() {
@@ -108,7 +108,7 @@ if ( process.env.MAINNET_FORK ) {
 
           farmerBalance = await underlying.balanceOf(farmer1);
           let farmerBalance1 = new BigNumber(farmerBalance);
-          console.log("LP provided: ", farmerBalance1.toFixed())
+          // console.log("LP provided: ", farmerBalance1.toFixed())
         }
 
         async function setupCoreProtocol() {
@@ -168,7 +168,7 @@ if ( process.env.MAINNET_FORK ) {
 
           // link vault with strategy
           await controller.addVaultAndStrategy(vault.address, strategy.address, {from: governance});
-          console.log("Core setup finished")
+          // console.log("Core setup finished")
         }
 
         beforeEach(async function () {
@@ -182,7 +182,7 @@ if ( process.env.MAINNET_FORK ) {
           await _vault.deposit(_amount, { from: _farmer });
           Utils.assertBNEq(_amount, await vault.balanceOf(_farmer));
           let amount1 = new BigNumber(_amount);
-          console.log("Depositted to Vault: ", amount1.toFixed())
+          // console.log("Depositted to Vault: ", amount1.toFixed())
           // assert.equal(_amount, await vault.getContributions(_farmer));
         }
 
@@ -190,6 +190,9 @@ if ( process.env.MAINNET_FORK ) {
 
           let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
           await depositVault(farmer1, underlying, vault, farmerBalance);
+          await vault.doHardWork({from: governance});
+          let strategyOldBalance = new BigNumber(await cropPool.balanceOf(strategy.address));
+          Utils.assertBNEq(strategyOldBalance.toFixed(), farmerOldBalance.toFixed());
 
           // Using half days is to simulate how we doHardwork in the real world
           //let numberOfHalfDays = 6; // 3 days
@@ -203,6 +206,8 @@ if ( process.env.MAINNET_FORK ) {
             await vault.doHardWork({from: governance});
             newSharePrice = new BigNumber(await vault.getPricePerFullShare());
 
+            Utils.assertBNGte(newSharePrice, oldSharePrice);
+
             console.log("old shareprice: ", oldSharePrice.toFixed());
             console.log("new shareprice: ", newSharePrice.toFixed());
             console.log("growth: ", (newSharePrice.dividedBy(oldSharePrice)).toFixed());
@@ -211,10 +216,12 @@ if ( process.env.MAINNET_FORK ) {
           }
           await vault.withdraw(farmerBalance, { from: farmer1 });
           let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
+
+          Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
+
           console.log("old farmer balance: ", farmerOldBalance.toFixed());
           console.log("new farmer balance: ", farmerNewBalance.toFixed());
           console.log("growth: ", (farmerNewBalance.dividedBy(farmerOldBalance)).toFixed());
-          Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
         });
       });
     }
@@ -267,7 +274,7 @@ if ( process.env.MAINNET_FORK ) {
 
     test("UST_WETH",
       [MFC.UST_ADDRESS, MFC.WETH_ADDRESS],
-      [MFC.UST_WHALE_ADDRESS, MFC.WETH_WHALE_ADDRESS],
+      [MFC.UST_WHALE_ADDRESS, MFC.WETH_WHALE_ADDRESS_NEW],
       MFC.SUSHISWAP_UST_WETH_POOL_ID,
       MFC.SUSHISWAP_UST_WETH_LP_ADDRESS,
       [
