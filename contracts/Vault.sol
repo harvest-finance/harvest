@@ -112,6 +112,7 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
   * doHardWork on the current strategy. Call this through controller to claim hard rewards.
   */
   function doHardWork() external whenStrategyDefined onlyControllerOrGovernance {
+    uint256 sharePriceBeforeHardWork = getPricePerFullShare();
     if (_withdrawBeforeReinvesting()) {
       IStrategy(strategy()).withdrawAllToVault();
     }
@@ -122,10 +123,8 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     uint256 sharePriceAfterHardWork = getPricePerFullShare();
 
     if (!allowSharePriceDecrease()) {
-      require(_sharePriceCheckpoint() <= sharePriceAfterHardWork, "Share price should not decrease");
+      require(sharePriceBeforeHardWork <= sharePriceAfterHardWork, "Share price should not decrease");
     }
-
-    _setSharePriceCheckpoint(sharePriceAfterHardWork);
   }
 
   /*
@@ -152,25 +151,13 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
         : underlyingUnit().mul(underlyingBalanceWithInvestment()).div(totalSupply());
   }
 
-  function getPricePerFullShareCheckpoint() public view returns (uint256) {
-    return _sharePriceCheckpoint();
-  }
-
-  function getEstimatedWithdrawalAmount(uint256 numberOfShares) public view returns (uint256 estimatedWithdrawal, uint256 realTimeCalculatedValue) {
-    uint256 storedSharePrice = _sharePriceCheckpoint();
-    uint256 calculatedSharePrice = getPricePerFullShare();
-    return (
-      numberOfShares.mul(Math.min(storedSharePrice, calculatedSharePrice))
-        .div(underlyingUnit()),
-
-      numberOfShares.mul(calculatedSharePrice)
-        .div(underlyingUnit())
-    );
+  function getEstimatedWithdrawalAmount(uint256 numberOfShares) public view returns (uint256 realTimeCalculatedValue) {
+    return numberOfShares.mul(getPricePerFullShare()).div(underlyingUnit());
   }
 
   function underlyingBalanceWithInvestmentForHolder(address holder) view external returns (uint256) {
     // for compatibility
-    (uint256 estimatedWithdrawal, ) = getEstimatedWithdrawalAmount(balanceOf(holder));
+    uint256 estimatedWithdrawal = getEstimatedWithdrawalAmount(balanceOf(holder));
     return estimatedWithdrawal;
   }
 
@@ -306,11 +293,10 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     uint256 totalShareSupply = totalSupply();
     _burn(msg.sender, numberOfShares);
 
-    uint256 storedSharePrice = _sharePriceCheckpoint();
     uint256 calculatedSharePrice = getPricePerFullShare();
 
     uint256 underlyingAmountToWithdraw = numberOfShares
-      .mul(Math.min(storedSharePrice, calculatedSharePrice))
+      .mul(calculatedSharePrice)
       .div(underlyingUnit());
 
     if (underlyingAmountToWithdraw > underlyingBalanceInVault()) {
@@ -329,7 +315,7 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
         calculatedSharePrice = getPricePerFullShare();
 
         uint256 updatedUnderlyingAmountToWithdraw = numberOfShares
-          .mul(Math.min(storedSharePrice, calculatedSharePrice))
+          .mul(calculatedSharePrice)
           .div(underlyingUnit());
 
         underlyingAmountToWithdraw = Math.min(
@@ -353,12 +339,7 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
       require(IStrategy(strategy()).depositArbCheck(), "Too much arb");
     }
 
-    uint256 storedSharePrice = _sharePriceCheckpoint();
-    uint256 calculatedSharePrice = getPricePerFullShare();
-
-    uint256 toMint = amount.mul(underlyingUnit()).div(
-      Math.max(storedSharePrice, calculatedSharePrice)
-    );
+    uint256 toMint = amount.mul(underlyingUnit()).div(getPricePerFullShare());
 
     _mint(beneficiary, toMint);
 
@@ -389,10 +370,8 @@ contract Vault is ERC20, ERC20Detailed, IVault, IUpgradeSource, ControllableInit
     _setNextImplementation(address(0));
     _setNextImplementationTimestamp(0);
     // for vaults V3
-    _setSharePriceCheckpoint(getPricePerFullShare());
     _setAllowSharePriceDecrease(false);
     _setWithdrawBeforeReinvesting(false);
-    require(getPricePerFullShareCheckpoint() == getPricePerFullShare(), "share price corrupted");
     require(!withdrawBeforeReinvesting(), "withdrawBeforeReinvesting is incorrect");
     require(!allowSharePriceDecrease(), "allowSharePriceDecrease is incorrect");
   }

@@ -15,7 +15,6 @@ contract VaultStorage is Initializable {
   bytes32 internal constant _STRATEGY_TIME_LOCK_SLOT = 0x6d02338b2e4c913c0f7d380e2798409838a48a2c4d57d52742a808c82d713d8b;
   bytes32 internal constant _FUTURE_STRATEGY_SLOT = 0xb441b53a4e42c2ca9182bc7ede99bedba7a5d9360d9dfbd31fa8ee2dc8590610;
   bytes32 internal constant _STRATEGY_UPDATE_TIME_SLOT = 0x56e7c0e75875c6497f0de657009613a32558904b5c10771a825cc330feff7e72;
-  bytes32 internal constant _SHARE_PRICE_CHECKPOINT_SLOT = 0xb1b621f8f6c231a376e5047acd2dcbe60d67c9e0b6b24f0600885e5e0f9b0d4d;
   bytes32 internal constant _ALLOW_SHARE_PRICE_DECREASE_SLOT = 0x22f7033891e85fc76735ebd320e0d3f546da431c4729c2f6d2613b11923aaaed;
   bytes32 internal constant _WITHDRAW_BEFORE_REINVESTING_SLOT = 0x4215fbb95dc0890d3e1660fb9089350f2d3f350c0a756934874cae6febf42a79;
 
@@ -31,7 +30,6 @@ contract VaultStorage is Initializable {
     assert(_STRATEGY_TIME_LOCK_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.strategyTimeLock")) - 1));
     assert(_FUTURE_STRATEGY_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.futureStrategy")) - 1));
     assert(_STRATEGY_UPDATE_TIME_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.strategyUpdateTime")) - 1));
-    assert(_SHARE_PRICE_CHECKPOINT_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.sharePriceCheckpoint")) - 1));
     assert(_ALLOW_SHARE_PRICE_DECREASE_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.allowSharePriceDecrease")) - 1));
     assert(_WITHDRAW_BEFORE_REINVESTING_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.withdrawBeforeReinvesting")) - 1));
   }
@@ -52,7 +50,6 @@ contract VaultStorage is Initializable {
     _setStrategyTimeLock(_strategyChangeDelay);
     _setStrategyUpdateTime(0);
     _setFutureStrategy(address(0));
-    _setSharePriceCheckpoint(_underlyingUnit);
     _setAllowSharePriceDecrease(false);
     _setWithdrawBeforeReinvesting(false);
   }
@@ -95,14 +92,6 @@ contract VaultStorage is Initializable {
 
   function _vaultFractionToInvestDenominator() internal view returns (uint256) {
     return getUint256(_VAULT_FRACTION_TO_INVEST_DENOMINATOR_SLOT);
-  }
-
-  function _setSharePriceCheckpoint(uint256 _value) internal {
-    setUint256(_SHARE_PRICE_CHECKPOINT_SLOT, _value);
-  }
-
-  function _sharePriceCheckpoint() internal view returns (uint256) {
-    return getUint256(_SHARE_PRICE_CHECKPOINT_SLOT);
   }
 
   function _setAllowSharePriceDecrease(bool _value) internal {
@@ -169,11 +158,11 @@ contract VaultStorage is Initializable {
     return getUint256(_STRATEGY_UPDATE_TIME_SLOT);
   }
 
-  function setBoolean(bytes32 slot, bool _value) private {
+  function setBoolean(bytes32 slot, bool _value) internal {
     setUint256(slot, _value ? 1 : 0);
   }
 
-  function getBoolean(bytes32 slot) private view returns (bool) {
+  function getBoolean(bytes32 slot) internal view returns (bool) {
     return (getUint256(slot) == 1);
   }
 

@@ -725,18 +725,15 @@ contract("Vault Test", function (accounts) {
           await vault.underlyingBalanceWithInvestmentForHolder(farmer)
         );
 
-        // initially, both getPricePerFullShare and getPricePerFullShareCheckpoint are tokenUnit
+        // initially getPricePerFullShare is tokenUnit
         Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShare());
-        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShareCheckpoint());
 
         await vault.doHardWork({from: governance});
         // the initial doHardWork doesn't change anything
         Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShare());
-        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShareCheckpoint());
 
-        // add interest only changes getPricePerFullShare, not the checkpoint
+        // add interest only changes getPricePerFullShare
         await strategy.addInterest({from: governance});
-        Utils.assertBNEq(tokenUnit, await vault.getPricePerFullShareCheckpoint());
         const roundBalancePlusFivePercent = roundBalance * 1.05;
         Utils.assertBNEq(new BigNumber(roundBalancePlusFivePercent).times(tokenUnit).dividedBy(roundBalance), await vault.getPricePerFullShare());
 
@@ -745,10 +742,9 @@ contract("Vault Test", function (accounts) {
         // for getEstimatedWithdrawalAmount[1] it's roundBalance + 5%
         let farmerShares = await vault.balanceOf(farmer);
         Utils.assertBNEq(farmerShares, roundBalance);
-        Utils.assertBNEq(roundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
-        Utils.assertBNEq(roundBalancePlusFivePercent, (await vault.getEstimatedWithdrawalAmount(farmerShares))[1]);
+        Utils.assertBNEq(roundBalancePlusFivePercent, await vault.getEstimatedWithdrawalAmount(farmerShares));
 
-        // the next deposit would be using getPricePerFullShare not getPricePerFullShareCheckpoint
+        // the next deposit would be using getPricePerFullShare
         await underlying.mint(farmer, roundBalance, { from: governance });
         const lastSharePrice = await vault.getPricePerFullShare();
         await vault.deposit(roundBalance, { from: farmer });
@@ -760,33 +756,30 @@ contract("Vault Test", function (accounts) {
         // the farmer's balance would be roundBalance (first deposit) + roundBalancePlusFivePercent (second deposit)
         // there is a rounding problem, therefore, had to subtract 1
         const roundBalancePlusFivePercentPlusRoundBalance = Number(roundBalance) + Number(roundBalancePlusFivePercent) - 1;
-        Utils.assertBNEq(farmerShares, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
-        // however, the second component of getEstimatedWithdrawalAmount returns the proper amount
-        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[1]);
+        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, await vault.getEstimatedWithdrawalAmount(farmerShares));
 
-        // after the next doHardWork, both getEstimatedWithdrawalAmount[0] and getEstimatedWithdrawalAmount[1] are equal
+        // after the next doHardWork, getEstimatedWithdrawalAmount is equal to roundBalancePlusFivePercentPlusRoundBalance
         await vault.doHardWork({from: governance});
 
         farmerShares = await vault.balanceOf(farmer);
-        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
-        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[1]);
+        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, await vault.getEstimatedWithdrawalAmount(farmerShares));
 
         // now, add more interest
         await strategy.addInterest({from: governance});
 
         farmerShares = await vault.balanceOf(farmer);
         // this will make the two amounts differ again
-        Utils.assertBNEq(roundBalancePlusFivePercentPlusRoundBalance, (await vault.getEstimatedWithdrawalAmount(farmerShares))[0]);
-        Utils.assertBNGt((await vault.getEstimatedWithdrawalAmount(farmerShares))[1], roundBalancePlusFivePercentPlusRoundBalance);
+        Utils.assertBNGt(await vault.getEstimatedWithdrawalAmount(farmerShares), roundBalancePlusFivePercentPlusRoundBalance);
 
         // however, ensure that the withdrawal uses the first amount
         const farmerBalanceBefore = await underlying.balanceOf(farmer);
+        const estimate = await vault.getEstimatedWithdrawalAmount(farmerShares);
         // withdrawing half of the shares, otherwise we are hitting the edge case when the entire shares are withdrawn
         await vault.withdraw(farmerShares / 2, { from: farmer });
-        Utils.assertBNEq(Math.trunc(roundBalancePlusFivePercentPlusRoundBalance / 2), (await underlying.balanceOf(farmer)) - farmerBalanceBefore);
+        Utils.assertBNEq(new BigNumber(estimate).dividedBy(2), (await underlying.balanceOf(farmer)) - farmerBalanceBefore);
       });
 
-      it("Proper share parametes on withdraw", async function () {
+      it("Proper share parameters on withdraw", async function () {
 
         // set up the vault with 100% investment
         vault = await makeVault(storage.address, underlying.address, 100, 100, {
@@ -958,7 +951,6 @@ contract("Vault Test", function (accounts) {
         // checking that the behaviour has actually changed
         assert.equal(false, await vault.allowSharePriceDecrease());
         assert.equal(false, await vault.withdrawBeforeReinvesting());
-        Utils.assertBNEq(oldSharePrice, await vault.getPricePerFullShareCheckpoint());
 
         // checking the legacy behaviour also
         await expectRevert(
