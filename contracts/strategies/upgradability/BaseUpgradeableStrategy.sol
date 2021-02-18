@@ -14,6 +14,7 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
 
   event ProfitsNotCollected(bool sell, bool floor);
   event ProfitLogInReward(uint256 profitAmount, uint256 feeAmount, uint256 timestamp);
+  event UpgradeScheduled(address address);
 
   modifier restricted() {
     require(msg.sender == vault() || msg.sender == controller()
@@ -66,6 +67,7 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
   function scheduleUpgrade(address impl) public onlyGovernance {
     _setNextImplementation(impl);
     _setNextImplementationTimestamp(block.timestamp.add(nextImplementationDelay()));
+    emit UpgradeScheduled(address);
   }
 
   function _finalizeUpgrade() internal {
