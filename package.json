@@ -2,21 +2,22 @@
   "name": "harvest",
   "version": "1.0.0",
   "description": "",
+  "homepage": "https://github.com/harvest-finance/harvest#readme",
+  "bugs": {
+    "url": "https://github.com/harvest-finance/harvest/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harvest-finance/harvest.git"
+  },
+  "license": "ISC",
+  "author": "",
   "main": "null",
   "scripts": {
     "test": "npx truffle test",
     "test-cov": "export RUNNING_COVERAGE=True && truffle run coverage --network=development",
     "test-mainnet-only": "truffle build && export MAINNET_FORK=True && npx truffle test ./test/mainnet-fork-test-basic.js ./test/mainnet-fork-test-curve-dai.js ./test/mainnet-fork-test-curve-usdc.js ./test/mainnet-fork-test-curve-usdt.js ./test/mainnet-fork-test-snxReward.js",
     "test-mainnet-e2e": "truffle build && export MAINNET_E2E=True && npx truffle test ./test/mainnet-e2e.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/harvest-finance/harvest.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/harvest-finance/harvest/issues"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.0",
@@ -29,7 +30,6 @@
     "truffle": "5.1.31",
     "truffle-flattener": "^1.4.4"
   },
-  "homepage": "https://github.com/harvest-finance/harvest#readme",
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.6"
   }
