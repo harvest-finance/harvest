@@ -9,7 +9,7 @@ A strategy is a smart contract that uses assets from the vault, invests
 them into a third-party DeFi protocol to generate profit. The smart
 contract needs to implement the following interface:
 
-```
+```solidity
 pragma solidity 0.5.16;
 
 interface IStrategy {
